@@ -10,6 +10,18 @@ async function applySchema() {
     'CREATE CONSTRAINT review_id IF NOT EXISTS FOR (r:Review) REQUIRE r.id IS UNIQUE',
     'CREATE INDEX person_domain IF NOT EXISTS FOR (p:Person) ON (p.domain)',
     'CREATE INDEX book_openlibrary_id IF NOT EXISTS FOR (b:Book) ON (b.openLibraryWorkId)',
+    // ML: cosine vector index on :Book(embedding) for semantic recommender (Neo4j 5.11+)
+    `CREATE VECTOR INDEX bookEmbedding IF NOT EXISTS
+     FOR (b:Book) ON (b.embedding)
+     OPTIONS {
+       indexConfig: {
+         \`vector.dimensions\`: 384,
+         \`vector.similarity_function\`: 'cosine'
+       }
+     }`,
+    // ML: Phase 4 cross-platform reception aggregate
+    'CREATE INDEX platform_reception_book_isbn IF NOT EXISTS FOR (r:PlatformReception) ON (r.book_isbn)',
+    'CREATE INDEX platform_reception_expires IF NOT EXISTS FOR (r:PlatformReception) ON (r.expires_at)',
   ];
 
   for (const constraint of constraints) {

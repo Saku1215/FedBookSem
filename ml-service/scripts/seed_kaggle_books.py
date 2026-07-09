@@ -49,7 +49,11 @@ async def main() -> None:
                 {
                     "isbn": row.isbn13,
                     "title": row.title,
-                    "author": (getattr(row, "authors", "") or ""),
+                    # pandas leaves missing values as float NaN which Cypher
+                    # persists as a non-string - Pydantic later rejects that.
+                    "author": (
+                        str(row.authors) if pd.notna(getattr(row, "authors", None)) else ""
+                    ),
                     "year": (
                         int(row.published_year)
                         if pd.notna(getattr(row, "published_year", None))

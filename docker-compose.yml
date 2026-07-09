@@ -9,7 +9,9 @@ services:
       - "7687:7687"
     environment:
       - NEO4J_AUTH=neo4j/fedbooksem123
-      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
@@ -46,12 +48,37 @@ services:
       NEO4J_PASSWORD: fedbooksem123
       OPENLIBRARY_USER_AGENT: "FedBook-Sem/0.1 (sanjaya.w@jinasena.com.lk)"
       PYTHONPATH: /app/src
+      LOG_LEVEL: INFO
+      # HuggingFace flaky network fix: use cached model files, skip HEAD update checks
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    env_file:
+      - ./ml-service/.env
     volumes:
       - ./ml-service:/app
       - ml_hf_cache:/root/.cache/huggingface
       - ml_torch_cache:/root/.cache/torch
     ports:
       - "8000:8000"
+    restart: unless-stopped
+
+  ml-dashboard:
+    build: ./ml-service
+    container_name: fedbook-ml-dashboard
+    depends_on:
+      - ml-service
+    environment:
+      ML_API_URL: http://ml-service:8000
+      PYTHONPATH: /app/src
+    volumes:
+      - ./ml-service:/app
+    ports:
+      - "8501:8501"
+    command: >
+      streamlit run src/fedbook_ml/dashboard/app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+      --browser.gatherUsageStats false
     restart: unless-stopped
 
 volumes:
