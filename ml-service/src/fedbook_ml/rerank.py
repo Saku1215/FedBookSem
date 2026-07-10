@@ -39,6 +39,7 @@ async def rerank_candidates(
         c["reception_score"] = rec.get("reception_score", 0.5)
         c["diversity_score"] = rec.get("diversity_score", 0.0)
         c["mentions_by_platform"] = rec.get("mentions_by_platform", {})
+        c["platform_breakdown"] = rec.get("platform_breakdown", {})
 
     if strategy == RerankStrategy.LEARNED and ltr_model is not None:
         learned = ltr_model.score(candidates)

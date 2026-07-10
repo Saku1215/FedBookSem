@@ -76,3 +76,64 @@ async def test_learned_falls_back_to_linear_when_no_model():
         ltr_model=None,  # no model loaded
     )
     assert "final_score" in ranked[0]
+
+
+@pytest.mark.asyncio
+async def test_rerank_attaches_platform_breakdown_when_available():
+    """The per-platform breakdown (positive/neutral/negative counts + positive_pct)
+    must be attached to every candidate so the frontend can render it, whether
+    or not reception participates in ranking."""
+    candidates = [
+        {"isbn": "A", "title": "A", "score": 0.6, "sim_score": 0.6},
+        {"isbn": "B", "title": "B", "score": 0.5, "sim_score": 0.5},
+    ]
+    breakdown_a = {
+        "reddit":  {"positive": 30, "neutral": 8, "negative": 4, "mentions": 42, "positive_pct": 0.714},
+        "youtube": {"positive": 15, "neutral": 5, "negative": 3, "mentions": 23, "positive_pct": 0.652},
+    }
+    fake = _FakeReception({
+        "A": {
+            "reception_score": 0.7,
+            "diversity_score": 0.6,
+            "mentions_by_platform": {"reddit": 42, "youtube": 23},
+            "platform_breakdown": breakdown_a,
+        },
+        # B has no reception - should get neutral fallbacks
+    })
+    ranked = await rerank_candidates(
+        candidates=candidates,
+        strategy=RerankStrategy.LINEAR,
+        reception=fake,
+    )
+    by_isbn = {c["isbn"]: c for c in ranked}
+    assert by_isbn["A"]["platform_breakdown"] == breakdown_a
+    assert by_isbn["A"]["mentions_by_platform"] == {"reddit": 42, "youtube": 23}
+    # B falls back to empty maps + neutral score
+    assert by_isbn["B"]["platform_breakdown"] == {}
+    assert by_isbn["B"]["reception_score"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_reception_scorer_returns_platform_breakdown_shape():
+    """End-to-end shape check on ReceptionScorer, mocked at the Neo4j read."""
+    from fedbook_ml.reception import ReceptionScorer
+
+    class _FakeNeo:
+        async def read(self, cypher, params=None):
+            return [
+                {"isbn": "9780002005883", "platform": "reddit",
+                 "positive": 30, "neutral": 8, "negative": 4, "mentions": 42},
+                {"isbn": "9780002005883", "platform": "bluesky",
+                 "positive": 10, "neutral": 5, "negative": 1, "mentions": 16},
+            ]
+
+    scorer = ReceptionScorer(_FakeNeo())
+    out = await scorer.scores_for_isbns(["9780002005883"])
+    result = out["9780002005883"]
+    assert "platform_breakdown" in result
+    reddit = result["platform_breakdown"]["reddit"]
+    assert reddit["positive"] == 30
+    assert reddit["mentions"] == 42
+    assert 0.7 < reddit["positive_pct"] < 0.72   # 30 / 42
+    assert result["mentions_by_platform"] == {"reddit": 42, "bluesky": 16}
+    assert 0 < result["reception_score"] < 1

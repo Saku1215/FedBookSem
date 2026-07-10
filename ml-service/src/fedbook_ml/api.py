@@ -44,12 +44,23 @@ async def lifespan(_app: FastAPI):
     state["cross_encoder"] = None  # lazy-loaded on first use
     state["ltr"] = _load_ltr()
 
+    # Live-enrichment clients (Open Library + Hardcover). Both are lazy and
+    # fail gracefully - Open Library needs no credentials; Hardcover works
+    # only when HARDCOVER_API_TOKEN is set.
+    from .openlibrary import OpenLibraryClient
+    from .ml.hardcover import HardcoverClient
+    state["openlibrary"] = OpenLibraryClient()
+    state["hardcover"] = HardcoverClient()
+    log.info("Hardcover enrichment %s", "enabled" if state["hardcover"].enabled else "disabled (no token)")
+
     Path("logs").mkdir(exist_ok=True)
 
     try:
         yield
     finally:
         await state["neo"].close()
+        await state["openlibrary"]._client.aclose()
+        await state["hardcover"].aclose()
 
 
 def _load_lightfm():
@@ -94,6 +105,15 @@ class RecommendationItem(BaseModel):
     diversity_score: float | None = None
     ce_score: float | None = None
     final_score: float | None = None
+    # Per-platform breakdown - populated whenever :PlatformReception exists
+    # for the book. Empty dicts when Phase 4 ingestion hasn't run yet.
+    mentions_by_platform: dict[str, int] | None = None
+    platform_breakdown: dict[str, dict[str, float]] | None = None
+    # Live-enrichment fields, populated when ?enrichLive=true
+    subjects: list[str] | None = None
+    openlibrary_work_id: str | None = None
+    hardcover_rating: float | None = None
+    hardcover_ratings_count: int | None = None
 
 
 class RecommendationResponse(BaseModel):
@@ -133,6 +153,10 @@ async def recommend_similar(
     alpha: float = Query(0.7, ge=0, le=1, description="linear blend: semantic weight"),
     beta: float = Query(0.25, ge=0, le=1, description="linear blend: reception weight"),
     gamma: float = Query(0.05, ge=0, le=1, description="linear blend: diversity weight"),
+    enrichLive: bool = Query(
+        False,
+        description="Fan out to Open Library (subjects, work_id) + Hardcover (rating) for the top-k results",
+    ),
 ) -> dict:
     fetch_k = k * 5 if reRank in {"cross-encoder", "linear", "learned"} else k
 
@@ -161,16 +185,70 @@ async def recommend_similar(
             ltr_model=state["ltr"] if reRank == "learned" else None,
             alpha=alpha, beta=beta, gamma=gamma,
         )
+    else:
+        # semantic (no rerank): reception is not part of ranking, but we still
+        # attach the per-platform breakdown so the UI can render reception
+        # badges regardless of strategy.
+        await _attach_reception_only(rows)
 
     rows = rows[:k]
+    if enrichLive:
+        await _enrich_live(rows)
     _log_recommend({
         "endpoint": "/recommend/similar",
         "isbn": isbn, "text": text, "k": k,
         "strategy": strategy,
         "alpha": alpha, "beta": beta, "gamma": gamma,
+        "enrichLive": enrichLive,
         "results": [{"isbn": r["isbn"], "final": r.get("final_score") or r["score"]} for r in rows],
     })
     return {"strategy": strategy, "results": rows}
+
+
+async def _enrich_live(rows: list[dict]) -> None:
+    """Fan out to Open Library and Hardcover concurrently for the given rows.
+
+    Both sources are best-effort. Missing / failed lookups leave the fields
+    as None on the response - the frontend already handles both cases.
+    """
+    if not rows:
+        return
+
+    ol = state["openlibrary"]
+    hc = state["hardcover"]
+    isbns = [r["isbn"] for r in rows]
+
+    # Run both fan-outs concurrently
+    ol_task = asyncio.gather(*(ol.fetch_work_by_isbn(i) for i in isbns), return_exceptions=True)
+    hc_task = hc.ratings_for_isbns(isbns) if hc.enabled else asyncio.sleep(0, result={})
+    ol_results, hc_results = await asyncio.gather(ol_task, hc_task)
+
+    for r, ol_work in zip(rows, ol_results, strict=True):
+        if isinstance(ol_work, Exception) or ol_work is None:
+            continue
+        r["subjects"] = ol_work.subjects[:8] if ol_work.subjects else []
+        r["openlibrary_work_id"] = ol_work.work_id
+
+    for r in rows:
+        hit = hc_results.get(r["isbn"]) if hc_results else None
+        if hit is not None:
+            r["hardcover_rating"] = hit.rating
+            r["hardcover_ratings_count"] = hit.ratings_count
+
+
+async def _attach_reception_only(rows: list[dict]) -> None:
+    """Attach reception fields without affecting ordering. Used for the semantic
+    strategy so book cards can still show per-platform badges."""
+    if not rows:
+        return
+    isbns = [r["isbn"] for r in rows]
+    scores = await state["reception"].scores_for_isbns(isbns)
+    for r in rows:
+        rec = scores.get(r["isbn"], {})
+        r["reception_score"] = rec.get("reception_score", 0.5)
+        r["diversity_score"] = rec.get("diversity_score", 0.0)
+        r["mentions_by_platform"] = rec.get("mentions_by_platform", {})
+        r["platform_breakdown"] = rec.get("platform_breakdown", {})
 
 
 async def _apply_cross_encoder(
@@ -212,6 +290,9 @@ async def _apply_cross_encoder(
     rows = await asyncio.to_thread(reranker.rerank, query_text, rows, len(rows))
     for r in rows:
         r["final_score"] = r.get("ce_score", r["score"])
+    # Attach reception so book cards can render platform badges even in
+    # cross-encoder mode (ordering is untouched).
+    await _attach_reception_only(rows)
     return rows
 
 

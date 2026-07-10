@@ -23,11 +23,25 @@ class ReceptionScorer:
         self._client = client
 
     async def scores_for_isbns(self, isbns: list[str]) -> dict[str, dict]:
-        """Return {isbn: {reception_score, diversity_score, mentions_by_platform}}.
+        """Return per-book reception aggregates.
+
+        Structure per ISBN::
+
+            {
+                "reception_score":       float in [0, 1],
+                "diversity_score":       float in [0, 1] (Shannon entropy over platforms),
+                "mentions_by_platform":  {"reddit": 42, "youtube": 17, ...},
+                "platform_breakdown":    {
+                    "reddit":  {"positive": 30, "neutral": 8, "negative": 4,
+                                "mentions": 42, "positive_pct": 0.71},
+                    ...
+                },
+            }
 
         Falls back gracefully when no receptions have been ingested yet:
-        every book gets reception_score=0.5 (neutral), diversity_score=0.
-        This keeps Phase 5 re-ranking testable end-to-end before Phase 4 lands.
+        every book gets reception_score=0.5 (neutral), diversity_score=0,
+        empty platform maps. Keeps re-ranking testable end-to-end before
+        Phase 4 ingestion lands.
         """
         if not isbns:
             return {}
@@ -57,12 +71,14 @@ class ReceptionScorer:
                     "reception_score": 0.5,
                     "diversity_score": 0.0,
                     "mentions_by_platform": {},
+                    "platform_breakdown": {},
                 }
                 continue
 
             weighted_pos = 0.0
             weight_total = 0.0
             mention_totals: dict[str, int] = {}
+            breakdown: dict[str, dict] = {}
             for platform, r in per_platform.items():
                 w = PLATFORM_WEIGHTS.get(platform, 0.1)
                 total = max(1, r["positive"] + r["neutral"] + r["negative"])
@@ -70,12 +86,20 @@ class ReceptionScorer:
                 weighted_pos += w * pos_share
                 weight_total += w
                 mention_totals[platform] = r["mentions"]
+                breakdown[platform] = {
+                    "positive": r["positive"],
+                    "neutral": r["neutral"],
+                    "negative": r["negative"],
+                    "mentions": r["mentions"],
+                    "positive_pct": round(pos_share, 3),
+                }
 
             reception = weighted_pos / weight_total if weight_total else 0.5
             out[isbn] = {
                 "reception_score": reception,
                 "diversity_score": _shannon(list(mention_totals.values())),
                 "mentions_by_platform": mention_totals,
+                "platform_breakdown": breakdown,
             }
         return out
 
