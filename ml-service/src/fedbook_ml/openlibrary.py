@@ -23,6 +23,7 @@ class OpenLibraryClient:
         self._client = httpx.AsyncClient(
             headers={"User-Agent": s.openlibrary_user_agent},
             timeout=10.0,
+            follow_redirects=True,   # /isbn/<isbn>.json 302s to /books/OL...M.json
         )
         self._last_call = 0.0
 
