@@ -8,6 +8,7 @@ Raw mention text is NEVER persisted. Only aggregate counts + external IDs
 (for the deletion-sweep) are written.
 """
 
+import argparse
 import asyncio
 import logging
 import os
@@ -22,21 +23,29 @@ from fedbook_ml.sentiment import SentimentScorer
 
 log = logging.getLogger("fedbook_ml.ingest_daily")
 
+# Which env var must be set for each collector to be viable.
+# Bluesky and Mastodon can run unauthenticated so they have no strict gate.
+_COLLECTOR_REQUIREMENTS = {
+    "reddit":   (RedditCollector,   "REDDIT_CLIENT_ID"),
+    "youtube":  (YouTubeCollector,  "YOUTUBE_API_KEY"),
+    "bluesky":  (BlueskyCollector,  None),
+    "mastodon": (MastodonCollector, None),
+}
 
-def _build_collectors() -> list:
+
+def _build_collectors(allowed: set[str] | None = None) -> list:
+    """Instantiate the configured collectors, filtered by `allowed` set."""
     collectors = []
-    for name, cls in (
-        ("REDDIT_CLIENT_ID", RedditCollector),
-        ("YOUTUBE_API_KEY", YouTubeCollector),
-        ("BLUESKY_APPVIEW_URL", BlueskyCollector),
-        ("MASTODON_INSTANCES", MastodonCollector),
-    ):
-        # Bluesky/Mastodon have defaults, so always try them
-        if cls in {BlueskyCollector, MastodonCollector} or name in os.environ:
-            try:
-                collectors.append(cls())
-            except Exception as e:  # noqa: BLE001
-                log.warning("Skip %s: %s", cls.__name__, e)
+    for name, (cls, required_env) in _COLLECTOR_REQUIREMENTS.items():
+        if allowed is not None and name not in allowed:
+            continue
+        if required_env and required_env not in os.environ:
+            log.info("Skip %s: %s not set", name, required_env)
+            continue
+        try:
+            collectors.append(cls())
+        except Exception as e:  # noqa: BLE001
+            log.warning("Skip %s: %s", cls.__name__, e)
     return collectors
 
 
@@ -68,18 +77,54 @@ async def _persist(neo: Neo4jClient, agg: ReceptionAggregate) -> None:
 
 
 async def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "--platforms",
+        default=None,
+        help="comma-separated subset: reddit,youtube,bluesky,mastodon (default: all with credentials)",
+    )
+    ap.add_argument(
+        "--limit",
+        type=int,
+        default=30,
+        help="how many books to ingest per run (respects rate limits; raise as you're comfortable)",
+    )
+    ap.add_argument(
+        "--drop-mock",
+        action="store_true",
+        help="drop demo :PlatformReception (r.demo=true) before real ingestion so mock data doesn't co-exist with real data",
+    )
+    args = ap.parse_args()
+
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
     neo = Neo4jClient.from_env()
     scorer = SentimentScorer()
-    collectors = _build_collectors()
+
+    allowed = None
+    if args.platforms:
+        allowed = {p.strip().lower() for p in args.platforms.split(",") if p.strip()}
+        unknown = allowed - _COLLECTOR_REQUIREMENTS.keys()
+        if unknown:
+            log.error("Unknown platform(s): %s. Valid: %s", unknown, list(_COLLECTOR_REQUIREMENTS))
+            return
+
+    collectors = _build_collectors(allowed=allowed)
     if not collectors:
         log.error("No collectors configured - set at least one platform's env vars")
         return
+    log.info("Active collectors: %s", [c.platform for c in collectors])
+
+    if args.drop_mock:
+        result = await neo.write(
+            "MATCH (r:PlatformReception {demo:true}) DETACH DELETE r RETURN count(*) AS n"
+        )
+        log.info("Dropped %s mock :PlatformReception nodes", result[0]["n"] if result else 0)
 
     books = await neo.read(
         "MATCH (b:Book) WHERE b.description IS NOT NULL "
         "RETURN b.isbn AS isbn, b.title AS title, coalesce(b.author,'') AS author "
-        "LIMIT 100"  # cap per run to respect rate limits; extend when comfortable
+        "LIMIT $limit",
+        {"limit": args.limit},
     )
 
     for book in books:
