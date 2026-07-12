@@ -9,6 +9,7 @@ async function applySchema() {
     'CREATE CONSTRAINT book_id IF NOT EXISTS FOR (b:Book) REQUIRE b.id IS UNIQUE',
     'CREATE CONSTRAINT review_id IF NOT EXISTS FOR (r:Review) REQUIRE r.id IS UNIQUE',
     'CREATE INDEX person_domain IF NOT EXISTS FOR (p:Person) ON (p.domain)',
+    'CREATE INDEX book_openlibrary_id IF NOT EXISTS FOR (b:Book) ON (b.openLibraryWorkId)',
   ];
 
   for (const constraint of constraints) {

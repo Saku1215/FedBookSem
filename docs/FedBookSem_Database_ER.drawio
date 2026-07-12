@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net" modified="2026-05-10T10:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="db-er" name="Neo4j Graph Model">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="FedBook-Sem — Neo4j Graph Database Model" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="30" width="700" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ PERSON NODE ═══════════ -->
+        <mxCell id="person-header" value="Person" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="person-attrs" value="• username : String [UNIQUE]&#xa;• displayName : String&#xa;• bio : String&#xa;• domain : String&#xa;• passwordHash : String&#xa;• publicKey : String (RSA-2048 PEM)&#xa;• privateKey : String (RSA-2048 PEM)&#xa;• avatarUrl : String&#xa;• createdAt : DateTime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ BOOK NODE ═══════════ -->
+        <mxCell id="book-header" value="Book" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="120" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="book-attrs" value="• isbn : String [UNIQUE]&#xa;• title : String&#xa;• author : String&#xa;• year : Integer&#xa;• passage : String&#xa;• coverUrl : String (nullable)&#xa;• createdAt : DateTime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="550" y="160" width="240" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ REVIEW NODE ═══════════ -->
+        <mxCell id="review-header" value="Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="120" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="review-attrs" value="• id : String [UNIQUE, UUID]&#xa;• content : String&#xa;• rating : Integer (1–5)&#xa;• likeCount : Integer&#xa;• apId : String (AP URL)&#xa;• createdAt : DateTime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;align=left;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="160" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ ANNOTATION NODE ═══════════ -->
+        <mxCell id="anno-header" value="Annotation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="540" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="anno-attrs" value="• id : String [UNIQUE, UUID]&#xa;• bodyValue : String&#xa;• motivation : String&#xa;• quoteExact : String&#xa;• quotePrefix : String&#xa;• quoteSuffix : String&#xa;• positionStart : Integer&#xa;• positionEnd : Integer&#xa;• apId : String (AP URL)&#xa;• createdAt : DateTime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="550" y="580" width="240" height="185" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ REPLY NODE ═══════════ -->
+        <mxCell id="reply-header" value="Reply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="540" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="reply-attrs" value="• id : String [UNIQUE, UUID]&#xa;• content : String&#xa;• apId : String (AP URL)&#xa;• createdAt : DateTime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="580" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ RELATIONSHIPS ═══════════ -->
+
+        <!-- Person FOLLOWS Person -->
+        <mxCell id="r-follows" value="FOLLOWS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;entryX=0.5;entryY=0;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" edge="1" parent="1" source="person-header" target="person-header">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint x="200" y="80" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="200" y="80" />
+              <mxPoint x="80" y="80" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Person AUTHORED Review -->
+        <mxCell id="r-authored" value="AUTHORED&#xa;(1..* → 0..*)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeColor=#d6b656;fontStyle=1;fontSize=10;" edge="1" parent="1" source="person-header" target="review-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Review REVIEWS Book -->
+        <mxCell id="r-reviews" value="REVIEWS&#xa;(0..* → 1)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=block;endFill=1;strokeColor=#82b366;fontStyle=1;fontSize=10;" edge="1" parent="1" source="review-header" target="book-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Person LIKES Review -->
+        <mxCell id="r-likes" value="LIKES&#xa;(0..* → 0..*)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.8;entryX=1;entryY=0.8;endArrow=block;endFill=1;strokeColor=#b85450;fontStyle=1;fontSize=10;curved=1;" edge="1" parent="1" source="person-header" target="review-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="290" />
+              <mxPoint x="1360" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Person BOOSTED Review -->
+        <mxCell id="r-boosted" value="BOOSTED&#xa;(0..* → 0..*)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.9;entryX=1;entryY=0.9;endArrow=block;endFill=1;strokeColor=#9673a6;fontStyle=1;fontSize=10;dashed=1;" edge="1" parent="1" source="person-header" target="review-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="305" />
+              <mxPoint x="1370" y="295" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Person ANNOTATED Annotation -->
+        <mxCell id="r-annotated" value="ANNOTATED&#xa;(1 → 0..*)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;entryX=0;entryY=0.3;endArrow=block;endFill=1;strokeColor=#9673a6;fontStyle=1;fontSize=10;" edge="1" parent="1" source="person-header" target="anno-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="480" />
+              <mxPoint x="500" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Annotation ON_SOURCE Book -->
+        <mxCell id="r-onsource" value="ON_SOURCE&#xa;(0..* → 1)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=block;endFill=1;strokeColor=#82b366;fontStyle=1;fontSize=10;" edge="1" parent="1" source="anno-header" target="book-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Person REPLY_TO Reply -->
+        <mxCell id="r-replyauthor" value="AUTHORED" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;entryX=0;entryY=0.3;endArrow=block;endFill=1;strokeColor=#b85450;fontStyle=1;fontSize=10;" edge="1" parent="1" source="person-header" target="reply-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="200" />
+              <mxPoint x="1380" y="200" />
+              <mxPoint x="1380" y="556" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Reply REPLY_TO Review -->
+        <mxCell id="r-replyto" value="REPLY_TO&#xa;(0..* → 1)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;entryX=0.5;entryY=1;endArrow=block;endFill=1;strokeColor=#b85450;fontStyle=1;fontSize=10;" edge="1" parent="1" source="reply-header" target="review-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LEGEND ═══════════ -->
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="810" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="Node (entity)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="845" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="Directed relationship (edge)" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;strokeColor=#555555;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="220" y="860" as="sourcePoint" />
+            <mxPoint x="360" y="860" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg3" value="[UNIQUE] = uniqueness constraint in Neo4j" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="885" width="340" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="Cardinality shown on edges as (source → target)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="910" width="380" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

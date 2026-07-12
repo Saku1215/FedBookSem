@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="UTF-8">
+  <title>FedBook-Sem API Reference</title>
+  <style>
+    body {
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      margin: 2cm 2.5cm;
+      line-height: 1.5;
+    }
+    h1 {
+      font-size: 20pt;
+      color: #1a3c5e;
+      border-bottom: 2px solid #1a3c5e;
+      padding-bottom: 6px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 14pt;
+      color: #1a3c5e;
+      background-color: #dce8f5;
+      padding: 6px 10px;
+      margin-top: 24px;
+      margin-bottom: 4px;
+      border-left: 4px solid #1a3c5e;
+    }
+    h3 {
+      font-size: 11pt;
+      color: #2c2c2c;
+      margin-top: 16px;
+      margin-bottom: 2px;
+      font-weight: bold;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 10.5pt;
+    }
+    th {
+      background-color: #1a3c5e;
+      color: #ffffff;
+      text-align: left;
+      padding: 6px 10px;
+      font-weight: bold;
+    }
+    td {
+      border: 1px solid #c0c0c0;
+      padding: 6px 10px;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td {
+      background-color: #f4f8fc;
+    }
+    .label-get    { background:#1a7a3e; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold; font-size:9.5pt; }
+    .label-post   { background:#b86b00; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold; font-size:9.5pt; }
+    .label-put    { background:#5a1ab8; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold; font-size:9.5pt; }
+    .label-delete { background:#b81a1a; color:#fff; padding:2px 8px; border-radius:3px; font-weight:bold; font-size:9.5pt; }
+    .label-auth   { background:#c0392b; color:#fff; padding:2px 8px; border-radius:3px; font-size:9.5pt; }
+    .label-noauth { background:#7f8c8d; color:#fff; padding:2px 8px; border-radius:3px; font-size:9.5pt; }
+    pre {
+      background-color: #f0f0f0;
+      border: 1px solid #cccccc;
+      border-left: 3px solid #1a3c5e;
+      padding: 8px 12px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9.5pt;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 4px 0 10px 0;
+    }
+    .url {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10pt;
+      color: #1a3c5e;
+      font-weight: bold;
+    }
+    .base {
+      color: #888;
+    }
+    .endpoint-row {
+      margin-bottom: 18px;
+      border: 1px solid #dde4ec;
+      padding: 10px 14px;
+      border-radius: 4px;
+    }
+    .meta-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .note {
+      background:#fff8dc;
+      border:1px solid #e0c840;
+      padding: 6px 10px;
+      font-size:10pt;
+      margin: 6px 0;
+    }
+    p { margin: 4px 0; }
+    .toc { margin: 10px 0 24px 0; }
+    .toc a { color: #1a3c5e; text-decoration: none; }
+    .toc li { margin: 3px 0; }
+    .section-num { color: #888; }
+  </style>
+</head>
+<body>
+
+<h1>FedBook-Sem — Backend API Reference</h1>
+<p><strong>Base URL:</strong> <span class="url">http://localhost:3001</span></p>
+<p><strong>Project:</strong> R26-IT-107 &nbsp;|&nbsp; <strong>Student:</strong> IT22922670 &nbsp;|&nbsp; <strong>Date:</strong> May 2026</p>
+<p><strong>Auth header format:</strong> <code>Authorization: Bearer &lt;token&gt;</code> &nbsp;— obtain token from <code>POST /api/auth/login</code></p>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>1. Health Check</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/health</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Verify the server is running.</p>
+  <p><strong>Payload:</strong> None</p>
+  <p><strong>Expected Response:</strong></p>
+  <pre>{ "status": "ok", "service": "fedbooksem-backend" }</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>2. Authentication</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/auth/login</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Login and receive a JWT token (valid 7 days).</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload — Alice:</strong></p>
+  <pre>{ "username": "alice", "password": "alice123" }</pre>
+  <p><strong>Payload — Bob:</strong></p>
+  <pre>{ "username": "bob", "password": "bob123" }</pre>
+  <p><strong>Payload — Carol:</strong></p>
+  <pre>{ "username": "carol", "password": "carol123" }</pre>
+  <p><strong>Response:</strong> <code>{ "token": "eyJ...", "actor": { "username": "alice", ... } }</code></p>
+  <div class="note">Save the <code>token</code> value. Use it as <code>Authorization: Bearer &lt;token&gt;</code> for all protected endpoints.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>3. Books</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/books</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> List all 6 books in the catalogue.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/books/9789556682045</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get a single book by ISBN. Example shows Gamperaliya.</p>
+  <p><strong>Payload:</strong> None</p>
+  <p><strong>Other ISBNs:</strong></p>
+  <table>
+    <tr><th>Book</th><th>ISBN</th><th>Full URL</th></tr>
+    <tr><td>Gamperaliya</td><td>9789556682045</td><td><code>http://localhost:3001/api/books/9789556682045</code></td></tr>
+    <tr><td>Viragaya</td><td>9789556682052</td><td><code>http://localhost:3001/api/books/9789556682052</code></td></tr>
+    <tr><td>Madol Doova</td><td>9789555232310</td><td><code>http://localhost:3001/api/books/9789555232310</code></td></tr>
+    <tr><td>Siri Parakum</td><td>9789553100012</td><td><code>http://localhost:3001/api/books/9789553100012</code></td></tr>
+    <tr><td>Nidhanaya</td><td>9789555360180</td><td><code>http://localhost:3001/api/books/9789555360180</code></td></tr>
+    <tr><td>Ahasin Polowata</td><td>9789550019015</td><td><code>http://localhost:3001/api/books/9789550019015</code></td></tr>
+  </table>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/books/9789556682045/reviews</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get all reviews for a book. Replace ISBN for other books.</p>
+  <p><strong>Payload:</strong> None</p>
+  <div class="note">Copy a review <code>id</code> (UUID) from this response to use in the review detail and interaction endpoints below.</div>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/covers/9789556682045</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Returns a dynamically generated SVG book cover. Open directly in a browser to view it. Works for all ISBNs.</p>
+  <p><strong>Payload:</strong> None</p>
+  <p><strong>Response Content-Type:</strong> image/svg+xml</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>4. Reviews</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Create a new book review. Also federated to remote followers via ActivityPub.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload:</strong></p>
+  <pre>{
+  "isbn": "9789555232310",
+  "content": "The island setting is unlike anything else in Sri Lankan fiction. A childhood adventure that stays with you forever.",
+  "rating": 5
+}</pre>
+  <div class="note">Save the <code>id</code> (UUID) from the response. You need it for like, announce, reply, and single-review endpoints.</div>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews/<em>{review-id}</em></span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get a single review with author and book details. Replace <code>{review-id}</code> with UUID from the POST response or from <code>GET /api/books/:isbn/reviews</code>.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews/<em>{review-id}</em>/like</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Like a review. Creates a LIKES edge in Neo4j and delivers a Like activity to the author's inbox.</p>
+  <p><strong>Payload:</strong> None (no body required)</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews/<em>{review-id}</em>/announce</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Boost/repost a review. Creates a BOOSTED edge and delivers an Announce activity to your followers.</p>
+  <p><strong>Payload:</strong> None (no body required)</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews/<em>{review-id}</em>/replies</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Post a reply to a review.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload:</strong></p>
+  <pre>{ "content": "Completely agree — the lagoon scenes are unforgettable." }</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/reviews/<em>{review-id}</em>/replies</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get all replies for a review in chronological order.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>5. Annotations (W3C Web Annotation)</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/annotations?bookSource=http://localhost:3001/books/9789556682045</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get seeded annotations for Gamperaliya (annotated by Alice). Change the ISBN for other books.</p>
+  <p><strong>Payload:</strong> None (query parameter only)</p>
+  <p><strong>Other bookSource values:</strong></p>
+  <pre>http://localhost:3001/books/9789556682052   ← Viragaya (annotated by Bob)
+http://localhost:3001/books/9789555232310   ← Madol Doova (annotated by Carol)</pre>
+  <div class="note">Copy an annotation <code>id</code> from this response to use in the thread and delete endpoints.</div>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/annotations</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Create a new W3C Web Annotation with TextQuoteSelector and TextPositionSelector on a book passage.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload — Commenting on Gamperaliya:</strong></p>
+  <pre>{
+  "bookSource": "http://localhost:3001/books/9789556682045",
+  "exactText": "life here moved slowly, shaped by the rhythms of harvest and rain",
+  "prefix": "horizon. ",
+  "suffix": ", by the",
+  "startOffset": 178,
+  "endOffset": 243,
+  "motivation": "commenting",
+  "bodyValue": "The cyclical nature of rural life is the emotional backbone of the entire novel."
+}</pre>
+  <p><strong>Payload — Highlighting on Viragaya (login as Bob):</strong></p>
+  <pre>{
+  "bookSource": "http://localhost:3001/books/9789556682052",
+  "exactText": "The mountains ahead were indifferent to his suffering",
+  "prefix": "away. ",
+  "suffix": ", and that",
+  "startOffset": 246,
+  "endOffset": 298,
+  "motivation": "highlighting",
+  "bodyValue": "Existentialist undertone — nature as mirror of detachment."
+}</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/annotations/<em>{annotation-id}</em>/thread</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get the reply thread for an annotation.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-delete">DELETE</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/annotations/<em>{annotation-id}</em></span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Delete an annotation. Only the creator can delete it.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>6. Social Graph</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/social/users</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> List all local users (alice, bob, carol).</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/social/follow</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Follow a user. If remote, delivers a Follow activity via HTTP Signatures.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload — Alice follows Bob:</strong></p>
+  <pre>{ "targetId": "http://localhost:3001/users/bob" }</pre>
+  <p><strong>Payload — Alice follows Carol:</strong></p>
+  <pre>{ "targetId": "http://localhost:3001/users/carol" }</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/social/unfollow</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Unfollow a user. Delivers an Undo{Follow} activity if remote.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload:</strong></p>
+  <pre>{ "targetId": "http://localhost:3001/users/bob" }</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/social/followers?actorId=http://localhost:3001/users/alice</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get all followers of alice. Seeded: carol follows alice.</p>
+  <p><strong>Payload:</strong> None (query parameter only)</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/social/following?actorId=http://localhost:3001/users/alice</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get everyone alice is following. Seeded: alice follows bob and carol.</p>
+  <p><strong>Payload:</strong> None (query parameter only)</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>7. Feed</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/feed</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Personalised timeline. Returns reviews from people the logged-in user follows. Alice follows Bob and Carol, so returns their reviews.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/feed/all</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Public discover feed. Returns all reviews from all users, newest first.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/feed/recommendations</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Friend-of-friend book recommendations using Neo4j graph traversal. Recommends books reviewed by people your followees follow.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/feed/liked-by-followed</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Returns books that people you follow have liked, with names of who liked them.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>8. User Profiles</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/users/alice</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Get full profile for alice — includes follower/following counts and recent reviews. Also works for <code>/api/users/bob</code> and <code>/api/users/carol</code>.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-put">PUT</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/users/alice</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Update a user's display name and bio. Must be logged in as that user.</p>
+  <p><strong>Content-Type:</strong> application/json</p>
+  <p><strong>Payload:</strong></p>
+  <pre>{
+  "displayName": "Alice Perera",
+  "bio": "Lover of Sinhala fiction, poetry, and W3C annotations."
+}</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/api/users/alice/avatar</span>
+    <span class="label-auth">Auth Required</span>
+  </div>
+  <p><strong>Description:</strong> Upload a profile avatar. Max 4 MB. Images only (JPEG, PNG, etc.).</p>
+  <p><strong>Content-Type:</strong> multipart/form-data</p>
+  <p><strong>Form field:</strong> <code>avatar</code> — select an image file</p>
+  <p><strong>Response:</strong> <code>{ "avatarUrl": "http://localhost:3001/avatars/alice.jpg" }</code></p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>9. ActivityPub — Federation Endpoints</h2>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/.well-known/webfinger?resource=acct:alice@localhost:3001</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> WebFinger actor discovery. Returns a JRD (JSON Resource Descriptor) linking alice to her ActivityPub actor URL. Any ActivityPub server uses this to find a user.</p>
+  <p><strong>Payload:</strong> None (query parameter only)</p>
+  <p><strong>Other users:</strong></p>
+  <pre>http://localhost:3001/.well-known/webfinger?resource=acct:bob@localhost:3001
+http://localhost:3001/.well-known/webfinger?resource=acct:carol@localhost:3001</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/users/alice</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> ActivityPub Person actor profile for alice. Returns JSON-LD with public key, inbox, outbox, followers, and following links. This is what federated servers fetch to interact with alice.</p>
+  <p><strong>Payload:</strong> None</p>
+  <p><strong>Response Content-Type:</strong> application/activity+json</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/users/alice/followers</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> ActivityPub OrderedCollection of alice's followers.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/users/alice/following</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> ActivityPub OrderedCollection of users alice is following.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/users/alice/outbox</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> ActivityPub OrderedCollection of alice's reviews as Create{Note} activities.</p>
+  <p><strong>Payload:</strong> None</p>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-post">POST</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/inbox</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Shared ActivityPub inbox. Accepts Follow, Undo, Like, Announce, and Create{Note} activities from remote federated servers.</p>
+  <p><strong>Content-Type:</strong> application/activity+json</p>
+  <p><strong>Payload — Example Follow activity from a remote server:</strong></p>
+  <pre>{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Follow",
+  "actor": "https://mastodon.example/users/remotereader",
+  "object": "http://localhost:3001/users/alice"
+}</pre>
+</div>
+
+<div class="endpoint-row">
+  <div class="meta-row">
+    <span class="label-get">GET</span>
+    <span class="url"><span class="base">http://localhost:3001</span>/books/9789556682045</span>
+    <span class="label-noauth">No Auth</span>
+  </div>
+  <p><strong>Description:</strong> Book as an ActivityPub Group actor. Remote servers can follow this "Group" to receive all reviews for this book federated to their inbox.</p>
+  <p><strong>Payload:</strong> None</p>
+  <p><strong>Response Content-Type:</strong> application/activity+json</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Appendix — Seed Data Reference</h2>
+
+<h3>Users</h3>
+<table>
+  <tr><th>Username</th><th>Password</th><th>Display Name</th><th>Actor ID</th></tr>
+  <tr><td>alice</td><td>alice123</td><td>Alice Perera</td><td>http://localhost:3001/users/alice</td></tr>
+  <tr><td>bob</td><td>bob123</td><td>Bob Silva</td><td>http://localhost:3001/users/bob</td></tr>
+  <tr><td>carol</td><td>carol123</td><td>Carol Fernando</td><td>http://localhost:3001/users/carol</td></tr>
+</table>
+
+<h3>Books</h3>
+<table>
+  <tr><th>Title</th><th>Author</th><th>Year</th><th>ISBN</th></tr>
+  <tr><td>Gamperaliya</td><td>Martin Wickramasinghe</td><td>1944</td><td>9789556682045</td></tr>
+  <tr><td>Viragaya</td><td>Martin Wickramasinghe</td><td>1956</td><td>9789556682052</td></tr>
+  <tr><td>Madol Doova</td><td>Martin Wickramasinghe</td><td>1947</td><td>9789555232310</td></tr>
+  <tr><td>Siri Parakum</td><td>Mahagama Sekera</td><td>1964</td><td>9789553100012</td></tr>
+  <tr><td>Nidhanaya</td><td>Karunasena Jayalath</td><td>1980</td><td>9789555360180</td></tr>
+  <tr><td>Ahasin Polowata</td><td>Ediriweera Sarachchandra</td><td>1959</td><td>9789550019015</td></tr>
+</table>
+
+<h3>Seeded Reviews</h3>
+<table>
+  <tr><th>Author</th><th>Book</th><th>Rating</th></tr>
+  <tr><td>alice</td><td>Gamperaliya</td><td>5 / 5</td></tr>
+  <tr><td>bob</td><td>Viragaya</td><td>5 / 5</td></tr>
+  <tr><td>carol</td><td>Madol Doova</td><td>4 / 5</td></tr>
+  <tr><td>alice</td><td>Siri Parakum</td><td>5 / 5</td></tr>
+  <tr><td>bob</td><td>Nidhanaya</td><td>4 / 5</td></tr>
+  <tr><td>carol</td><td>Ahasin Polowata</td><td>5 / 5</td></tr>
+</table>
+
+<h3>Seeded Annotations</h3>
+<table>
+  <tr><th>Author</th><th>Book</th><th>Exact Text</th><th>Motivation</th></tr>
+  <tr><td>alice</td><td>Gamperaliya</td><td>coconut palms swaying in the monsoon wind</td><td>commenting</td></tr>
+  <tr><td>bob</td><td>Viragaya</td><td>some truths can only be found when the noise of the world fades away</td><td>highlighting</td></tr>
+  <tr><td>carol</td><td>Madol Doova</td><td>every morning the birds came to the tall trees</td><td>tagging</td></tr>
+</table>
+
+<h3>Seeded Follow Relationships</h3>
+<table>
+  <tr><th>Follower</th><th>Follows</th></tr>
+  <tr><td>alice</td><td>bob</td></tr>
+  <tr><td>alice</td><td>carol</td></tr>
+  <tr><td>bob</td><td>carol</td></tr>
+  <tr><td>carol</td><td>alice</td></tr>
+</table>
+
+</body>
+</html>

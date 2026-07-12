@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.*
+!.env.example
 *.log
 npm-debug.log*
 public/avatars/*
@@ -8,3 +10,24 @@ build/
 coverage/
 .DS_Store
 Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Local helper scripts that contained secrets — DO NOT COMMIT
+commit_history.sh
+push_group_repo.sh
+
+# Backup of frontend's former nested .git (kept locally for recovery)
+frontend/.git.bak/
+
+# Python ml-service
+ml-service/.venv/
+ml-service/__pycache__/
+ml-service/**/__pycache__/
+ml-service/*.egg-info/
+ml-service/.pytest_cache/
+ml-service/data/
+ml-service/models/
+ml-service/logs/
+*.pyc
