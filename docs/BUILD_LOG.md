@@ -529,4 +529,116 @@ For the **architecture** chapter:
 
 ---
 
+## 12. Iteration 2 (2026-07-18) — per-platform reception + live library data
+
+Delivered on branch **`feature/api-integrations`**. Extends the Phase 4/5
+plumbing so cross-platform reception is not just computed but *visible*
+per book, and adds live enrichment from Open Library + Hardcover.
+
+### 12.1 What changed
+
+**Backend — ml-service**
+
+- `reception.py`: `ReceptionScorer.scores_for_isbns()` now returns a
+  `platform_breakdown` dict per book — per-platform positive / neutral /
+  negative counts plus `positive_pct`. The existing `mentions_by_platform`
+  totals are preserved.
+- `rerank.py`: pipes `platform_breakdown` onto every candidate.
+- `api.py`:
+  - `RecommendationItem` model gains `mentions_by_platform`,
+    `platform_breakdown`, `subjects`, `openlibrary_work_id`,
+    `hardcover_rating`, `hardcover_ratings_count` (all optional).
+  - `_attach_reception_only(rows)` fetches reception even for
+    `?reRank=semantic` and `?reRank=cross-encoder`, so book cards get
+    badges regardless of ranking strategy.
+  - `/recommend/similar?enrichLive=true` fans out to Open Library and
+    Hardcover concurrently for the top-k results via `asyncio.gather`.
+    Both sources are best-effort — failures return None and the
+    recommender proceeds without them.
+- `ml/hardcover.py` *(new)*: async GraphQL client for
+  `api.hardcover.app/v1/graphql`. Rate-limited to 60 req/min via a
+  monotonic-clock throttle guarded by an asyncio lock. Handles missing
+  token, 401 (auto-disables client for the session), unknown ISBN
+  (returns null rating), and malformed responses.
+- `scripts/seed_mock_receptions.py` *(new)*: writes plausible
+  `:PlatformReception` for 30 embedded books using a seeded RNG so the
+  frontend has something to render before real ingestion runs. Tags
+  every node with `demo: true` so real ingestion can drop them cleanly.
+- `scripts/ingest_daily.py`: added `--platforms`, `--limit`, and
+  `--drop-mock` CLI flags. `--platforms bluesky,mastodon` lets us
+  enable collectors that need no approval independently of the
+  approval-gated ones.
+
+**Frontend**
+
+- `components/ReceptionBadges.jsx`: renders per-platform coloured dots
+  (unchanged), overall reception %, and a new optional **Hardcover star
+  rating chip**. Tooltip now shows one line per platform with positive %
+  and mention count. Renders nothing when neither reception nor
+  Hardcover data are available.
+- `pages/FeedPage.jsx`: passes `breakdown`, `hardcoverRating`,
+  `hardcoverRatingsCount` to `ReceptionBadges`.
+
+**Configuration**
+
+- `ml-service/.env.example`: added `HARDCOVER_API_TOKEN`,
+  `MASTODON_INSTANCES`, `REDDIT_CLIENT_ID/SECRET/USER_AGENT`,
+  `YOUTUBE_API_KEY`, `BSKY_HANDLE/APP_PASSWORD` placeholders with
+  explanatory comments.
+- `docker-compose.yml`: no change needed — `env_file: ./ml-service/.env`
+  already forwards the new vars into the container.
+
+**Tests**
+
+- `tests/test_hardcover.py` *(new)*: 6 async tests using `pytest-httpx`
+  — happy path, missing-token disables client, 401 auto-disables for
+  session, unknown ISBN returns null rating, malformed response returns
+  None, batch fetch runs concurrently.
+- `tests/test_reception_and_rerank.py`: added two tests — one asserts
+  `platform_breakdown` is attached during rerank, one shape-checks
+  `ReceptionScorer` output against a mocked Neo4j read.
+
+**Documentation**
+
+- `docs/API_Feasibility_Assessment.md` *(prior commit)*: mid-2026
+  free-tier landscape for Reddit / YouTube / Bluesky / Mastodon /
+  Goodreads alternatives / Hardcover.
+- `docs/reddit_rfr_application.md` *(new)*: draft Reddit for Researchers
+  application text, ready to submit once the SLIIT ethics letter comes
+  through. Documents the compliance mechanisms *already in code* on the
+  master branch (deletion sweep, no raw text, aggregate-only storage).
+
+### 12.2 What this proves
+
+The user's original prompt was: *"we are getting the recommendation from
+live book library systems too?"* and *"can we show the ratings for each
+book on each platform too?"*
+
+Both questions are now answerable:
+
+- **Show per-platform ratings on each book.** Yes — every book card in
+  the For You tab now renders four coloured dots + overall reception %,
+  and a hover tooltip shows the per-platform positive share and mention
+  count. Works with any of the four re-rank strategies.
+- **Get recommendations from live book library systems.** Yes, opt-in via
+  `?enrichLive=true`. Open Library provides subjects and canonical work
+  IDs; Hardcover provides an aggregate star rating and rating count.
+  Both are fetched concurrently, both fail gracefully.
+
+### 12.3 What's still gated on you
+
+- **Real ingestion data.** Set `YOUTUBE_API_KEY` in `ml-service/.env`,
+  then run `docker compose exec ml-service python scripts/ingest_daily.py
+  --platforms bluesky,mastodon,youtube --limit 30 --drop-mock`. Reddit
+  waits on the Nov 2025 approval — draft application in
+  `docs/reddit_rfr_application.md`.
+- **Hardcover token.** Grab one from `hardcover.app/account/api`, add to
+  `ml-service/.env` as `HARDCOVER_API_TOKEN`, restart the ml-service.
+  Then `?enrichLive=true` starts populating the star chip.
+
+Nothing else is required to hit the endpoints — the demo mock seeder
+lets you exercise the UI immediately.
+
+---
+
 **End of build log.**
