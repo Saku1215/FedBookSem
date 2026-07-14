@@ -24,9 +24,21 @@ class MastodonCollector:
             "MASTODON_INSTANCES",
             "https://mastodon.social,https://bookwyrm.social",
         )
-        self._instances = [i.strip() for i in instances.split(",") if i.strip()]
+        # Accept bare hostnames (mastodon.social) and prefix https:// if absent.
+        # Strip trailing slashes so path joins don't produce doubled slashes.
+        self._instances = []
+        for raw in instances.split(","):
+            raw = raw.strip().rstrip("/")
+            if not raw:
+                continue
+            if not raw.startswith(("http://", "https://")):
+                raw = f"https://{raw}"
+            self._instances.append(raw)
+
         token = os.environ.get("MASTODON_ACCESS_TOKEN")
-        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        headers = {"User-Agent": "FedBook-Sem/0.1"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         self._client = httpx.AsyncClient(headers=headers, timeout=15.0)
 
     async def collect_for_book(self, title: str, author: str) -> list[Mention]:

@@ -60,7 +60,8 @@ async def _persist(neo: Neo4jClient, agg: ReceptionAggregate) -> None:
             r.mentions = $mentions,
             r.external_ids = $eids,
             r.ingested_at = $ingested,
-            r.expires_at = $expires
+            r.expires_at = $expires,
+            r.demo = false
         """,
         {
             "isbn": agg.isbn,

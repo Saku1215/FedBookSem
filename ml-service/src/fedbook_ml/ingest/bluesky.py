@@ -19,7 +19,13 @@ class BlueskyCollector:
 
     def __init__(self) -> None:
         base = os.environ.get("BLUESKY_APPVIEW_URL", "https://public.api.bsky.app")
-        self._client = httpx.AsyncClient(base_url=base, timeout=15.0)
+        # A descriptive User-Agent is required for the public AppView -
+        # unauthenticated requests without one 403 as of mid-2026.
+        self._client = httpx.AsyncClient(
+            base_url=base,
+            timeout=15.0,
+            headers={"User-Agent": "FedBook-Sem/0.1 (research)"},
+        )
 
     async def collect_for_book(self, title: str, author: str) -> list[Mention]:
         query = f"{title} {author}".strip()
