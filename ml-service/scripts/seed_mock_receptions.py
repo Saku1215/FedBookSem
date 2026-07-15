@@ -42,8 +42,10 @@ async def main() -> None:
         )
         print(f"Dropped {result[0]['n']} existing PlatformReception nodes")
 
+    # Same filter as ingest_daily.py - skip the 6 Sri-Lankan platform-seed
+    # books so mock data lives only on the English Kaggle catalogue.
     books = await neo.read(
-        "MATCH (b:Book) WHERE b.embedding IS NOT NULL "
+        "MATCH (b:Book) WHERE b.embedding IS NOT NULL AND b.thumbnail IS NOT NULL "
         "RETURN b.isbn AS isbn, coalesce(b.title,'') AS title LIMIT $n",
         {"n": args.count},
     )
