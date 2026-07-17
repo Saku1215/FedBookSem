@@ -33,14 +33,24 @@ class BlueskyCollector:
     platform = "bluesky"
 
     def __init__(self) -> None:
-        base = os.environ.get("BLUESKY_APPVIEW_URL", "https://public.api.bsky.app")
+        # `public.api.bsky.app` is anonymous-friendly but rejects our
+        # authenticated requests too (CDN-layer 403). Bluesky's own web app
+        # hits `api.bsky.app` (without "public") for authenticated reads.
+        # createSession must go to the user's PDS - bsky.social by default.
+        anon_base = os.environ.get("BLUESKY_APPVIEW_URL", "https://public.api.bsky.app")
+        auth_base = os.environ.get("BLUESKY_AUTH_APPVIEW_URL", "https://api.bsky.app")
+        self._pds = os.environ.get("BSKY_PDS_URL", "https://bsky.social")
+
+        self._handle = os.environ.get("BSKY_HANDLE") or None
+        self._password = os.environ.get("BSKY_APP_PASSWORD") or None
+        # Use the authenticated AppView when we have creds; otherwise fall
+        # back to the public one (which will 403 and warn cleanly).
+        self._read_base = auth_base if (self._handle and self._password) else anon_base
         self._client = httpx.AsyncClient(
-            base_url=base,
+            base_url=self._read_base,
             timeout=15.0,
             headers={"User-Agent": "FedBook-Sem/0.1 (research)"},
         )
-        self._handle = os.environ.get("BSKY_HANDLE") or None
-        self._password = os.environ.get("BSKY_APP_PASSWORD") or None
         self._access_jwt: str | None = None
         self._auth_attempted = False
 
@@ -54,7 +64,7 @@ class BlueskyCollector:
             return
         try:
             resp = await self._client.post(
-                "/xrpc/com.atproto.server.createSession",
+                f"{self._pds}/xrpc/com.atproto.server.createSession",
                 json={"identifier": self._handle, "password": self._password},
             )
             if resp.status_code == 200:
