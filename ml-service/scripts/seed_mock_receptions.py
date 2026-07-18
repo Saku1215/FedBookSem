@@ -70,11 +70,15 @@ async def main() -> None:
             ext_ids = [f"mock-{platform}-{isbn}-{i}" for i in range(min(mentions, 20))]
             expires = youtube_expiry if platform == "youtube" else None
 
+            # ON CREATE SET only - we do NOT overwrite existing nodes.
+            # This keeps any real-ingested reception (r.demo=false) intact
+            # when the seeder is run after a real ingestion pass.
             await neo.write(
                 """
                 MATCH (b:Book {isbn:$isbn})
                 MERGE (b)-[:RECEPTION_ON]->(r:PlatformReception {book_isbn:$isbn, platform:$platform})
-                SET r.positive = $pos,
+                ON CREATE SET
+                    r.positive = $pos,
                     r.neutral = $neu,
                     r.negative = $neg,
                     r.mentions = $mentions,
