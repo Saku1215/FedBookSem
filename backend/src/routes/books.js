@@ -1,11 +1,11 @@
 const express = require('express');
-const { read } = require('../graph/neo4j');
+const { read, toJson } = require('../graph/neo4j');
 
 const router = express.Router();
 
 router.get('/', async (_req, res) => {
   const records = await read('MATCH (b:Book) RETURN b ORDER BY b.title ASC');
-  res.json(records.map((r) => r.get('b').properties));
+  res.json(records.map((r) => toJson(r.get('b').properties)));
 });
 
 router.get('/:isbn', async (req, res) => {
@@ -14,7 +14,7 @@ router.get('/:isbn', async (req, res) => {
     { isbn: req.params.isbn }
   );
   if (!records.length) return res.status(404).json({ error: 'Not found' });
-  res.json(records[0].get('b').properties);
+  res.json(toJson(records[0].get('b').properties));
 });
 
 router.get('/:isbn/reviews', async (req, res) => {
