@@ -36,11 +36,22 @@ def _reception_badges(item: dict) -> None:
     parts = []
     for p, colour in PLATFORM_COLOURS.items():
         n = mentions.get(p, 0)
+        b = breakdown.get(p) or {}
+        pos_pct = int((b.get("positive_pct") or 0) * 100)
+        pos = int(b.get("positive", 0))
+        neu = int(b.get("neutral", 0))
+        neg = int(b.get("negative", 0))
         opacity = "1.0" if n > 0 else "0.25"
+        tip = (
+            f"{PLATFORM_LABELS[p]}: "
+            f"{pos_pct}% positive ({n} mentions: +{pos} / {neu} / -{neg})"
+            if n > 0 else
+            f"{PLATFORM_LABELS[p]}: no data"
+        )
         parts.append(
-            f'<span title="{PLATFORM_LABELS[p]}: {n} mentions" '
-            f'style="display:inline-block;width:10px;height:10px;border-radius:50%;'
-            f'background:{colour};opacity:{opacity};margin-right:4px;"></span>'
+            f'<span title="{tip}" '
+            f'style="display:inline-block;width:12px;height:12px;border-radius:50%;'
+            f'background:{colour};opacity:{opacity};margin-right:6px;cursor:help;"></span>'
         )
     if score is not None and any(mentions.values()):
         parts.append(
