@@ -141,6 +141,86 @@ async def health() -> dict:
     }
 
 
+class BookMatch(BaseModel):
+    isbn: str
+    title: str
+    author: str = ""
+    thumbnail: str | None = None
+
+
+@app.get("/books/search")
+async def books_search(
+    q: str = Query(..., min_length=1, description="title or author substring"),
+    k: int = Query(5, ge=1, le=20),
+) -> dict:
+    """Case-insensitive fuzzy-ish lookup on the catalogue.
+
+    Matches the query against `title` first, then `author` as a fallback.
+    Ordered by title-length ASC so shorter matches ("Cash") rank above
+    long-title accidental substring hits. Kaggle catalogue only (books
+    with a Google-Books thumbnail).
+    """
+    rows = await state["neo"].read(
+        """
+        MATCH (b:Book)
+        WHERE b.thumbnail IS NOT NULL
+          AND (toLower(b.title) CONTAINS toLower($q)
+               OR toLower(coalesce(b.author,'')) CONTAINS toLower($q))
+        RETURN b.isbn AS isbn,
+               coalesce(b.title,'') AS title,
+               coalesce(b.author,'') AS author,
+               b.thumbnail AS thumbnail,
+               size(b.title) AS title_len,
+               CASE WHEN toLower(b.title) CONTAINS toLower($q) THEN 0 ELSE 1 END AS title_priority
+        ORDER BY title_priority ASC, title_len ASC
+        LIMIT $k
+        """,
+        {"q": q, "k": k},
+    )
+    return {"query": q, "matches": [
+        {k: r[k] for k in ("isbn", "title", "author", "thumbnail")} for r in rows
+    ]}
+
+
+@app.get("/books/details")
+async def books_details(
+    isbn: str = Query(..., description="ISBN-13 of the book to fetch"),
+    enrichLive: bool = Query(True, description="fan out to Open Library + Hardcover"),
+) -> dict:
+    """Return everything we know about one book: catalogue row, reception
+    aggregates, and (opt-in) live Open Library + Hardcover enrichment.
+
+    Powers the dashboard's 'Book title' lookup - when a user picks a
+    match from the search dropdown, we render the seed book itself
+    alongside its neighbours.
+    """
+    rows = await state["neo"].read(
+        """
+        MATCH (b:Book {isbn:$isbn})
+        RETURN b.isbn AS isbn,
+               coalesce(b.title,'') AS title,
+               coalesce(b.author,'') AS author,
+               b.thumbnail AS thumbnail,
+               coalesce(b.description,'') AS description
+        """,
+        {"isbn": isbn},
+    )
+    if not rows:
+        raise HTTPException(404, f"Book not found: {isbn}")
+
+    row = dict(rows[0])
+    row["score"] = 1.0
+    row["sim_score"] = 1.0
+
+    # Reception attachment - reuse the same helper used by /recommend/similar.
+    await _attach_reception_only([row])
+
+    if enrichLive:
+        await _enrich_live([row])
+
+    return row
+
+
 @app.get("/recommend/similar", response_model=RecommendationResponse)
 async def recommend_similar(
     isbn: str | None = Query(None),

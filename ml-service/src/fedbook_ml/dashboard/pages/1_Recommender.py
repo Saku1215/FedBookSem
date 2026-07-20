@@ -88,21 +88,59 @@ st.title("Recommender demo")
 col_query, col_strategy = st.columns([2, 1])
 
 with col_query:
-    mode = st.radio("Query type", ["ISBN seed", "Free-text seed"], horizontal=True)
+    mode = st.radio(
+        "Query type",
+        ["Book title", "ISBN seed", "Free-text seed"],
+        horizontal=True,
+    )
+
+    seed_isbn = None
+    seed_text = None
+    matched_book: dict | None = None
+
     if mode == "ISBN seed":
         seed_isbn = st.text_input(
             "Seed book ISBN",
             value="9780006480099",
             help="Try 9780006480099 (Assassin's Apprentice - has real reception data)",
         )
-        seed_text = None
-    else:
+    elif mode == "Free-text seed":
         seed_text = st.text_area(
             "Seed text",
             value="an epic fantasy adventure with wizards and dragons",
             height=80,
         )
-        seed_isbn = None
+    else:  # Book title
+        title_q = st.text_input(
+            "Book title (or author)",
+            value="Assassin's Apprentice",
+            help="Substring search - 'Gilead', 'Huxley', 'assassin' etc.",
+        )
+        if title_q and len(title_q) >= 2:
+            try:
+                sr = httpx.get(
+                    f"{ML_API}/books/search",
+                    params={"q": title_q, "k": 6},
+                    timeout=10.0,
+                ).json()
+                matches = sr.get("matches", [])
+            except Exception as exc:
+                st.error(f"Search failed: {exc}")
+                matches = []
+            if not matches:
+                st.info(f"No books match '{title_q}'.")
+            else:
+                labels = [
+                    f"{m['title']} - {m['author'][:40] or 'unknown'}   [{m['isbn']}]"
+                    for m in matches
+                ]
+                picked_label = st.radio(
+                    f"Matches for '{title_q}':",
+                    labels,
+                    index=0,
+                )
+                matched_book = matches[labels.index(picked_label)]
+                seed_isbn = matched_book["isbn"]
 
 with col_strategy:
     strategy = st.selectbox(
@@ -124,6 +162,37 @@ if strategy == "linear":
     g = st.slider("gamma (diversity)", 0.0, 1.0, 0.1, 0.05)
 else:
     a, b, g = 0.7, 0.25, 0.05
+
+if matched_book and mode == "Book title":
+    # Show a full details block for the matched book itself so the user
+    # sees reception + Hardcover for the exact title they searched.
+    with st.spinner(f"Loading details for {matched_book['title']}..."):
+        try:
+            details_r = httpx.get(
+                f"{ML_API}/books/details",
+                params={"isbn": matched_book["isbn"], "enrichLive": "true"},
+                timeout=30.0,
+            )
+            details_r.raise_for_status()
+            details = details_r.json()
+        except Exception as exc:
+            st.error(f"Details fetch failed: {exc}")
+            details = None
+
+    if details:
+        st.markdown("---")
+        st.subheader(f":book: {details['title']}")
+        col_img, col_meta = st.columns([1, 3])
+        with col_img:
+            if details.get("thumbnail"):
+                st.image(details["thumbnail"], width=140)
+        with col_meta:
+            st.caption(details.get("author", ""))
+            desc = details.get("description") or ""
+            if desc:
+                st.write(desc[:400] + ("..." if len(desc) > 400 else ""))
+            _reception_badges(details)
+        st.markdown("---")
 
 if st.button("Recommend", type="primary"):
     params = {"k": k}
