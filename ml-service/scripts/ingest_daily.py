@@ -96,6 +96,11 @@ async def main() -> None:
         action="store_true",
         help="drop demo :PlatformReception (r.demo=true) before real ingestion so mock data doesn't co-exist with real data",
     )
+    ap.add_argument(
+        "--only-isbns",
+        default=None,
+        help="comma-separated ISBNs to target explicitly; bypasses the Kaggle-only thumbnail filter (useful for locally seeded Sinhala titles)",
+    )
     args = ap.parse_args()
 
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -122,16 +127,24 @@ async def main() -> None:
         )
         log.info("Dropped %s mock :PlatformReception nodes", result[0]["n"] if result else 0)
 
-    # Only ingest books with a Google-Books thumbnail - that's the Kaggle 7k
-    # English catalogue. The 6 Sri-Lankan platform-seed books have no
-    # thumbnail and would waste API quota on titles that don't have
-    # English-language social discussion.
-    books = await neo.read(
-        "MATCH (b:Book) WHERE b.description IS NOT NULL AND b.thumbnail IS NOT NULL "
-        "RETURN b.isbn AS isbn, b.title AS title, coalesce(b.author,'') AS author "
-        "LIMIT $limit",
-        {"limit": args.limit},
-    )
+    if args.only_isbns:
+        isbns = [s.strip() for s in args.only_isbns.split(",") if s.strip()]
+        books = await neo.read(
+            "MATCH (b:Book) WHERE b.isbn IN $isbns "
+            "RETURN b.isbn AS isbn, b.title AS title, coalesce(b.author,'') AS author",
+            {"isbns": isbns},
+        )
+    else:
+        # Only ingest books with a Google-Books thumbnail - that's the Kaggle 7k
+        # English catalogue. The 6 Sri-Lankan platform-seed books have no
+        # thumbnail and would waste API quota on titles that don't have
+        # English-language social discussion.
+        books = await neo.read(
+            "MATCH (b:Book) WHERE b.description IS NOT NULL AND b.thumbnail IS NOT NULL "
+            "RETURN b.isbn AS isbn, b.title AS title, coalesce(b.author,'') AS author "
+            "LIMIT $limit",
+            {"limit": args.limit},
+        )
 
     for book in books:
         for coll in collectors:
