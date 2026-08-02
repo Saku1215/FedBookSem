@@ -45,7 +45,7 @@ export default function BookPage() {
         </div>
       </div>
 
-      <ReceptionBadges reception={book.reception} hardcover={book.hardcover} />
+      <ReceptionBadges reception={book.reception} hardcover={book.hardcover} platform={book.platform} />
 
       {book.passage && (
         <div style={{ marginBottom: 32 }}>
