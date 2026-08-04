@@ -158,11 +158,15 @@ router.get('/', async (req, res) => {
 router.get('/:isbn', async (req, res) => {
   const records = await read(
     `MATCH (b:Book {isbn: $isbn})
+     OPTIONAL MATCH (:Person)-[:AUTHORED]->(rev:Review)-[:REVIEWS]->(b)
+     WHERE rev.rating IS NOT NULL AND rev.rating > 0
      RETURN b.isbn AS isbn, b.title AS title, coalesce(b.author,'') AS author,
             b.year AS year, b.description AS description, b.passage AS passage,
             coalesce(b.coverUrl, b.thumbnail) AS coverUrl,
             b.subjects AS subjects,
-            coalesce(b.sourceCatalog, 'seed') AS source`,
+            coalesce(b.sourceCatalog, 'seed') AS source,
+            avg(rev.rating) AS platformRating,
+            count(rev) AS platformRatingCount`,
     { isbn: req.params.isbn }
   );
   if (!records.length) return res.status(404).json({ error: 'Not found' });
