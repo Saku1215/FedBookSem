@@ -49,10 +49,11 @@ function InfoDot({ tip, style = {} }) {
   );
 }
 
-export default function ReceptionBadges({ reception, hardcover }) {
+export default function ReceptionBadges({ reception, hardcover, platform }) {
   const hasReception = reception && reception.platforms && reception.platforms.length > 0;
   const hasHardcover = hardcover && hardcover.rating != null;
-  if (!hasReception && !hasHardcover) return null;
+  const hasPlatform = platform && platform.rating != null && platform.count > 0;
+  if (!hasReception && !hasHardcover && !hasPlatform) return null;
 
   return (
     <div className="card" style={{ marginBottom: 32, padding: 20 }}>
@@ -65,28 +66,28 @@ export default function ReceptionBadges({ reception, hardcover }) {
           <InfoDot tip={TIP.header} />
         </div>
 
+        {hasPlatform && (
+          <span title={`Average of ${platform.count.toLocaleString()} FedBook reader rating${platform.count === 1 ? '' : 's'} on this book.`} style={{
+            cursor: 'help',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '4px 10px', borderRadius: 999,
+            background: 'rgba(15,118,110,0.08)',
+            border: '1px solid rgba(15,118,110,0.25)',
+            color: 'var(--text)', fontSize: 13,
+          }}>
+            <span style={{ color: 'var(--gold)' }}>★</span>
+            <b>{platform.rating.toFixed(1)}</b>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+              /5 FedBook ({platform.count.toLocaleString()})
+            </span>
+          </span>
+        )}
+
         {hasReception && (
           <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
             <span title={TIP.overall} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
               <b style={{ color: 'var(--text)' }}>{pct(reception.overallPositivePct)}</b> positive
             </span>
-            {reception.overallStarRating != null && (
-              <>
-                <span>·</span>
-                <span title={TIP.overallStars} style={{
-                  cursor: 'help',
-                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                  padding: '1px 8px', borderRadius: 999,
-                  background: 'rgba(70,140,255,0.10)',
-                  border: '1px solid rgba(70,140,255,0.25)',
-                  color: 'var(--text)', fontSize: 12,
-                }}>
-                  <span style={{ color: '#4b9dff' }}>★</span>
-                  <b>{reception.overallStarRating.toFixed(1)}</b>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/5 web</span>
-                </span>
-              </>
-            )}
             <span>·</span>
             <span title={TIP.mentions} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
               {reception.totalMentions.toLocaleString()} mentions across YouTube, Bluesky &amp; Mastodon
