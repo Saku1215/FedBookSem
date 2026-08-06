@@ -179,6 +179,14 @@ router.get('/:isbn', async (req, res) => {
     ratingByIsbn(isbn),
   ]);
 
+  const platformRatingCount = r.get('platformRatingCount')?.toNumber
+    ? r.get('platformRatingCount').toNumber()
+    : Number(r.get('platformRatingCount') || 0);
+  const platformRatingAvg = r.get('platformRating');
+  const platform = platformRatingCount > 0 && platformRatingAvg != null
+    ? { rating: Number(platformRatingAvg), count: platformRatingCount }
+    : null;
+
   res.json({
     isbn,
     title: r.get('title'),
@@ -191,6 +199,7 @@ router.get('/:isbn', async (req, res) => {
     source: r.get('source'),
     reception,   // { platforms:[...], overallPositivePct, totalMentions } or null
     hardcover,   // { rating, ratingsCount, reviewsCount } or null
+    platform,    // { rating, count } — FedBook's own on-site :Review average, or null
   });
 });
 
