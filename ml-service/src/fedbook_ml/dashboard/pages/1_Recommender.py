@@ -25,7 +25,10 @@ PLATFORM_LABELS = {
 
 
 def _reception_badges(item: dict) -> None:
-    """Render coloured platform dots + Hardcover star chip + subject tags."""
+    """Render per-platform breakdown as a compact colored list + Hardcover
+    star chip + subject tags. Replaces the earlier dots-only layout so each
+    card shows the actual per-platform sentiment inline without needing a
+    hover or expander click."""
     breakdown = item.get("platform_breakdown") or {}
     mentions = item.get("mentions_by_platform") or {}
     score = item.get("reception_score")
@@ -33,51 +36,59 @@ def _reception_badges(item: dict) -> None:
     hc_count = item.get("hardcover_ratings_count")
     subjects = item.get("subjects") or []
 
-    parts = []
-    for p, colour in PLATFORM_COLOURS.items():
-        n = mentions.get(p, 0)
-        b = breakdown.get(p) or {}
-        pos_pct = int((b.get("positive_pct") or 0) * 100)
-        pos = int(b.get("positive", 0))
-        neu = int(b.get("neutral", 0))
-        neg = int(b.get("negative", 0))
-        opacity = "1.0" if n > 0 else "0.25"
-        tip = (
-            f"{PLATFORM_LABELS[p]}: "
-            f"{pos_pct}% positive ({n} mentions: +{pos} / {neu} / -{neg})"
-            if n > 0 else
-            f"{PLATFORM_LABELS[p]}: no data"
-        )
-        parts.append(
-            f'<span title="{tip}" '
-            f'style="display:inline-block;width:12px;height:12px;border-radius:50%;'
-            f'background:{colour};opacity:{opacity};margin-right:6px;cursor:help;"></span>'
-        )
+    # Header line: overall reception % + Hardcover star chip
+    header_parts = []
     if score is not None and any(mentions.values()):
-        parts.append(
-            f'<span style="font-size:12px;color:#666;margin-left:4px;">{int(score*100)}%</span>'
+        header_parts.append(
+            f'<span style="font-size:11px;color:#555;">Reception <b>{int(score*100)}%</b></span>'
         )
     if hc_rating is not None:
         count_txt = f" ({hc_count:,})" if hc_count else ""
-        parts.append(
-            f'<span style="font-size:12px;color:#666;margin-left:10px;">'
-            f'<span style="color:#f5a623;">★</span>{hc_rating:.1f}{count_txt}</span>'
+        header_parts.append(
+            f'<span style="font-size:11px;color:#555;margin-left:12px;">'
+            f'<span style="color:#f5a623;">★</span> {hc_rating:.1f}/5{count_txt}</span>'
         )
-    st.markdown("".join(parts), unsafe_allow_html=True)
+    if header_parts:
+        st.markdown(
+            '<div style="margin-top:6px;">' + " ".join(header_parts) + "</div>",
+            unsafe_allow_html=True,
+        )
 
-    if breakdown:
-        rows = []
-        for p, data in breakdown.items():
-            pct = int((data.get("positive_pct") or 0) * 100)
+    # Per-platform breakdown: one small row per platform, colour-coded.
+    # Always shows all 4 platforms so cards keep a consistent height; grey
+    # them out with reduced opacity when there is no data for that platform.
+    rows = []
+    for p, colour in PLATFORM_COLOURS.items():
+        data = breakdown.get(p) or {}
+        n = int(data.get("mentions") or 0)
+        pct = int((data.get("positive_pct") or 0) * 100)
+        pos = int(data.get("positive") or 0)
+        neu = int(data.get("neutral") or 0)
+        neg = int(data.get("negative") or 0)
+        label = PLATFORM_LABELS[p]
+        if n > 0:
             rows.append(
-                f"- **{PLATFORM_LABELS.get(p, p)}**: {pct}% positive "
-                f"({int(data.get('mentions', 0))} mentions, "
-                f"+{int(data.get('positive', 0))} / "
-                f"{int(data.get('neutral', 0))} / "
-                f"-{int(data.get('negative', 0))})"
+                f'<div style="font-size:11px;color:#333;line-height:1.4;">'
+                f'<span style="display:inline-block;width:8px;height:8px;'
+                f'border-radius:50%;background:{colour};margin-right:6px;'
+                f'vertical-align:middle;"></span>'
+                f'<b>{label}</b> — {pct}% pos · {n} mentions '
+                f'<span style="color:#888;">(+{pos}/{neu}/-{neg})</span>'
+                f'</div>'
             )
-        with st.expander("per-platform breakdown"):
-            st.markdown("\n".join(rows))
+        else:
+            rows.append(
+                f'<div style="font-size:11px;color:#aaa;line-height:1.4;">'
+                f'<span style="display:inline-block;width:8px;height:8px;'
+                f'border-radius:50%;background:{colour};opacity:0.25;'
+                f'margin-right:6px;vertical-align:middle;"></span>'
+                f'<b>{label}</b> — no data'
+                f'</div>'
+            )
+    st.markdown(
+        '<div style="margin-top:6px;">' + "".join(rows) + "</div>",
+        unsafe_allow_html=True,
+    )
 
     if subjects:
         st.caption("Subjects (Open Library): " + ", ".join(subjects[:5]))
