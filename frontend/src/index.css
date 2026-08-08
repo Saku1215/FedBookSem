@@ -1,13 +1,18 @@
-/* ── Design Tokens ─────────────────────────────────────────── */
+/* ── Design Tokens (light theme, teal-on-white) ────────────── */
 :root {
-  --bg:           #0d0d0f;
-  --surface:      #141418;
-  --surface-2:    #1c1c22;
-  --border:       rgba(255,255,255,0.08);
-  --gold:         #d4af37;
-  --gold-dim:     rgba(212,175,55,0.15);
-  --text-primary: #f0ece4;
-  --text-muted:   #7a7a8a;
+  --bg:           #ffffff;
+  --surface:      #ffffff;
+  --surface-2:    #f9fafb;
+  --border:       #e5e7eb;
+  --border-soft:  #f3f4f6;
+
+  --gold:         #0f766e;      /* teal-700 */
+  --gold-strong:  #115e59;      /* teal-800 */
+  --gold-dim:     #f0fdfa;      /* teal-50 */
+  --gold-ring:    rgba(15,118,110,0.15);
+
+  --text-primary: #111827;
+  --text-muted:   #6b7280;
   --radius:       10px;
   --font-sans:    'DM Sans', system-ui, sans-serif;
   --font-serif:   'Playfair Display', Georgia, serif;
