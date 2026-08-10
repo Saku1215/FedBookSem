@@ -36,7 +36,7 @@ export default function LandingPage() {
         <div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
           width: 640, height: 640, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(15,118,110,0.08) 0%, transparent 65%)',
           pointerEvents: 'none',
         }} />
         <div className="container" style={{ position: 'relative', textAlign: 'center' }}>
