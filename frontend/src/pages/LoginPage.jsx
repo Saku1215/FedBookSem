@@ -16,7 +16,7 @@ const BOOK_COVERS = [
 
 function BookSpine({ isbn }) {
   const [err, setErr] = useState(false);
-  if (err) return <div style={{ width: 48, height: 72, background: 'rgba(212,175,55,0.2)', borderRadius: 4 }} />;
+  if (err) return <div style={{ width: 48, height: 72, background: 'rgba(15,118,110,0.15)', borderRadius: 4 }} />;
   return (
     <img
       src={`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`}
@@ -87,7 +87,7 @@ export default function LoginPage() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Left panel — brand */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: 48, background: 'var(--surface)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, background: 'radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, background: 'radial-gradient(circle, rgba(15,118,110,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
           {BOOK_COVERS.map((isbn) => <BookSpine key={isbn} isbn={isbn} />)}
         </div>
