@@ -61,7 +61,7 @@ export default function AnnotationPanel({ bookSource, selection, onClose }) {
 
       {selection && user && (
         <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-          <div style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid var(--gold)', borderRadius: 6, padding: '8px 10px', marginBottom: 10, fontSize: 13, fontStyle: 'italic', color: 'var(--gold)' }}>
+          <div style={{ background: 'rgba(15,118,110,0.10)', border: '1px solid var(--gold)', borderRadius: 6, padding: '8px 10px', marginBottom: 10, fontSize: 13, fontStyle: 'italic', color: 'var(--gold)' }}>
             "{selection.exact}"
           </div>
           <select value={motivation} onChange={(e) => setMotivation(e.target.value)} style={{ width: '100%', marginBottom: 8 }}>
