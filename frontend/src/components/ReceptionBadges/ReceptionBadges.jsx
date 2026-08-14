@@ -53,13 +53,21 @@ export default function ReceptionBadges({ reception, hardcover, platform }) {
   const hasReception = reception && reception.platforms && reception.platforms.length > 0;
   const hasHardcover = hardcover && hardcover.rating != null;
   const hasPlatform = platform && platform.rating != null && platform.count > 0;
-  if (!hasReception && !hasHardcover && !hasPlatform) return null;
+
+  // Always render one row per known platform, filling in blanks with 0/0.
+  const byPlatform = Object.fromEntries(
+    (reception?.platforms ?? []).map((p) => [p.platform, p])
+  );
+  const platformRows = Object.keys(PLATFORMS).map((key) => (
+    byPlatform[key] ?? { platform: key, positive: 0, neutral: 0, negative: 0, mentions: 0, positivePct: null, starRating: null }
+  ));
+  const totalMentions = reception?.totalMentions ?? 0;
 
   return (
     <div className="card" style={{ marginBottom: 32, padding: 20 }}>
       <div style={{
         display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap',
-        marginBottom: hasReception ? 16 : 0,
+        marginBottom: 16,
       }}>
         <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 18, display: 'inline-flex', alignItems: 'center' }}>
           Reviews from around the web
@@ -83,17 +91,15 @@ export default function ReceptionBadges({ reception, hardcover, platform }) {
           </span>
         )}
 
-        {hasReception && (
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-            <span title={TIP.overall} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
-              <b style={{ color: 'var(--text)' }}>{pct(reception.overallPositivePct)}</b> positive
-            </span>
-            <span>·</span>
-            <span title={TIP.mentions} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
-              {reception.totalMentions.toLocaleString()} mentions across YouTube, Bluesky &amp; Mastodon
-            </span>
-          </div>
-        )}
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+          <span title={TIP.overall} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
+            <b style={{ color: 'var(--text)' }}>{hasReception ? pct(reception.overallPositivePct) : '—'}</b> positive
+          </span>
+          <span>·</span>
+          <span title={TIP.mentions} style={{ cursor: 'help', borderBottom: '1px dotted var(--text-muted)' }}>
+            {totalMentions.toLocaleString()} mentions across YouTube, Bluesky &amp; Mastodon
+          </span>
+        </div>
 
         {hasHardcover && (
           <div style={{
@@ -116,43 +122,52 @@ export default function ReceptionBadges({ reception, hardcover, platform }) {
         )}
       </div>
 
-      {hasReception && (
-        <div style={{ display: 'grid', gap: 10 }}>
-          {reception.platforms.map((p) => {
-            const meta = PLATFORMS[p.platform] || { label: p.platform, color: '#888', tip: '' };
-            const total = p.positive + p.neutral + p.negative;
-            const pos = total ? (p.positive / total) * 100 : 0;
-            const neu = total ? (p.neutral  / total) * 100 : 0;
-            const neg = total ? (p.negative / total) * 100 : 0;
-            const barTip = `${TIP.bar}\n\npositive: ${p.positive}\nneutral: ${p.neutral}\nnegative: ${p.negative}`;
-            const rightTip = `${p.positive} positive out of ${total} total mentions (positive + neutral + negative).`;
-            return (
-              <div key={p.platform} style={{ display: 'grid', gridTemplateColumns: '90px 1fr auto', gap: 12, alignItems: 'center' }}>
-                <span
-                  title={meta.tip}
-                  style={{ color: meta.color, fontWeight: 600, fontSize: 13, cursor: 'help', borderBottom: '1px dotted currentColor' }}
-                >
-                  {meta.label}
-                </span>
-                <div title={barTip}
-                  style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', cursor: 'help' }}>
-                  <div style={{ width: `${pos}%`, background: '#4caf50' }} />
-                  <div style={{ width: `${neu}%`, background: '#7d7d7d' }} />
-                  <div style={{ width: `${neg}%`, background: '#e64a4a' }} />
-                </div>
-                <span title={rightTip} style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 160, textAlign: 'right', cursor: 'help', whiteSpace: 'nowrap' }}>
-                  {pct(p.positivePct)} · {p.mentions}
-                  {p.starRating != null && (
-                    <span title={TIP.platformStars} style={{ marginLeft: 8, color: '#4b9dff' }}>
-                      ★ <b style={{ color: 'var(--text)' }}>{p.starRating.toFixed(1)}</b>
-                    </span>
-                  )}
-                </span>
+      <div style={{ display: 'grid', gap: 10 }}>
+        {platformRows.map((p) => {
+          const meta = PLATFORMS[p.platform] || { label: p.platform, color: '#888', tip: '' };
+          const total = p.positive + p.neutral + p.negative;
+          const empty = total === 0;
+          const pos = empty ? 0 : (p.positive / total) * 100;
+          const neu = empty ? 0 : (p.neutral  / total) * 100;
+          const neg = empty ? 0 : (p.negative / total) * 100;
+          const barTip = empty
+            ? `No reviews collected yet on ${meta.label} for this book.`
+            : `${TIP.bar}\n\npositive: ${p.positive}\nneutral: ${p.neutral}\nnegative: ${p.negative}`;
+          const rightTip = empty
+            ? `0 positive out of 0 total mentions on ${meta.label}.`
+            : `${p.positive} positive out of ${total} total mentions (positive + neutral + negative).`;
+          return (
+            <div key={p.platform} style={{ display: 'grid', gridTemplateColumns: '90px 1fr auto', gap: 12, alignItems: 'center', opacity: empty ? 0.55 : 1 }}>
+              <span
+                title={meta.tip}
+                style={{ color: meta.color, fontWeight: 600, fontSize: 13, cursor: 'help', borderBottom: '1px dotted currentColor' }}
+              >
+                {meta.label}
+              </span>
+              <div title={barTip}
+                style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(0,0,0,0.06)', cursor: 'help' }}>
+                <div style={{ width: `${pos}%`, background: '#4caf50' }} />
+                <div style={{ width: `${neu}%`, background: '#7d7d7d' }} />
+                <div style={{ width: `${neg}%`, background: '#e64a4a' }} />
               </div>
-            );
-          })}
-        </div>
-      )}
+              <span title={rightTip} style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 160, textAlign: 'right', cursor: 'help', whiteSpace: 'nowrap' }}>
+                {empty ? (
+                  <span>0/0 reviews</span>
+                ) : (
+                  <>
+                    {pct(p.positivePct)} · {p.mentions} review{p.mentions === 1 ? '' : 's'}
+                    {p.starRating != null && (
+                      <span title={TIP.platformStars} style={{ marginLeft: 8, color: '#4b9dff' }}>
+                        ★ <b style={{ color: 'var(--text)' }}>{p.starRating.toFixed(1)}</b>
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
