@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const PALETTE = ['#2d1f4e', '#1a3a2e', '#3a1a1a', '#1a2a3a', '#2e2a1a', '#1e3020'];
 
@@ -7,6 +7,13 @@ export default function BookCover({ isbn, title, coverUrl, size = 'M', idx = 0, 
   const svgSrc = isbn ? `/api/covers/${isbn}` : null;
   const [src, setSrc] = useState(() => coverUrl || svgSrc);
   const [err, setErr] = useState(false);
+
+  // BookPage stays mounted across route changes (same /books/:isbn pattern),
+  // so reset state whenever the caller hands us a different book.
+  useEffect(() => {
+    setSrc(coverUrl || svgSrc);
+    setErr(false);
+  }, [coverUrl, svgSrc]);
 
   const dims = { S: [32, 48], M: [80, 120], L: [120, 180] };
 
