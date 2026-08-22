@@ -21,6 +21,12 @@ push_group_repo.sh
 # Backup of frontend's former nested .git (kept locally for recovery)
 frontend/.git.bak/
 
+# Backdated-commit workdir (intermediate file snapshots)
+.commit-staging/
+
+# DB dumps
+backups/
+
 # Throwaway headless-Chrome screenshots used for FE verification
 docs/library-screenshot.png
 
