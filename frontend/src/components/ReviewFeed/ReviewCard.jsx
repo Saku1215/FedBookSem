@@ -105,7 +105,6 @@ export default function ReviewCard({ review, onToast }) {
         <button className="btn btn-ghost btn-sm" onClick={handleShowReplies}>
           💬 {replies.length > 0 ? replies.length : ''} {showReplies ? 'Hide' : 'Replies'}
         </button>
-        <span className="badge badge-gold" style={{ marginLeft: 'auto' }}>Federated</span>
       </div>
 
       {showReplies && (

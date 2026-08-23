@@ -31,7 +31,7 @@ export default function FeedPage() {
       {toast && <Toast message={toast} onClose={() => setToast('')} />}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, marginBottom: 4 }}>Literary Feed</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Federated book reviews from across the open web</p>
+        <p style={{ color: 'var(--text-muted)' }}>Book reviews from the FedBook community</p>
       </div>
 
       <div className="tabs">

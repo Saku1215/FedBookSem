@@ -21,6 +21,9 @@ push_group_repo.sh
 # Backup of frontend's former nested .git (kept locally for recovery)
 frontend/.git.bak/
 
+# Throwaway headless-Chrome screenshots used for FE verification
+docs/library-screenshot.png
+
 # Python ml-service
 ml-service/.venv/
 ml-service/__pycache__/

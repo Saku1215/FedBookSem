@@ -4,7 +4,9 @@ import { getBook, getBookReviews } from '../api/client';
 import ReviewCard from '../components/ReviewFeed/ReviewCard';
 import NewReviewForm from '../components/ReviewFeed/NewReviewForm';
 import BookReader from '../components/BookReader/BookReader';
-import FollowButton from '../components/Social/FollowButton';
+import ReadingStatusSelector from '../components/ReadingStatus/ReadingStatusSelector';
+import ReceptionBadges from '../components/ReceptionBadges/ReceptionBadges';
+import SimilarBooks from '../components/SimilarBooks/SimilarBooks';
 import Toast from '../components/Layout/Toast';
 import BookCover from '../components/BookCover';
 
@@ -26,8 +28,6 @@ export default function BookPage() {
 
   if (!book) return <div className="container" style={{ paddingTop: 64, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
-  const actorId = `${window.location.origin.replace('3000', '3001')}/books/${isbn}`;
-
   return (
     <div className="container" style={{ paddingTop: 32 }}>
       {toast && <Toast message={toast} onClose={() => setToast('')} />}
@@ -37,14 +37,15 @@ export default function BookPage() {
         <div style={{ flex: 1, minWidth: 200 }}>
           <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, marginBottom: 6 }}>{book.title}</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: 12 }}>{book.author}</p>
-          <div className="flex gap-sm flex-wrap" style={{ marginBottom: 16 }}>
+          <div className="flex gap-sm flex-wrap" style={{ marginBottom: 8 }}>
             {book.isbn && <span className="badge badge-indigo">ISBN {book.isbn}</span>}
             {book.year && <span className="badge">{book.year}</span>}
-            <span className="badge badge-gold">ActivityPub Actor</span>
           </div>
-          <FollowButton targetId={actorId} targetUsername={book.title} onToast={setToast} />
+          <ReadingStatusSelector isbn={isbn} onToast={setToast} />
         </div>
       </div>
+
+      <ReceptionBadges reception={book.reception} hardcover={book.hardcover} />
 
       {book.passage && (
         <div style={{ marginBottom: 32 }}>
@@ -55,7 +56,7 @@ export default function BookPage() {
 
       <div>
         <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 20, marginBottom: 16 }}>
-          Reviews <span style={{ fontSize: 14, color: 'var(--text-muted)', fontFamily: 'DM Sans, sans-serif' }}>({reviews.length})</span>
+          Community reviews <span style={{ fontSize: 14, color: 'var(--text-muted)', fontFamily: 'DM Sans, sans-serif' }}>({reviews.length})</span>
         </h2>
         <NewReviewForm isbn={isbn} onSubmitted={loadReviews} />
         {reviews.length === 0
@@ -63,6 +64,8 @@ export default function BookPage() {
           : reviews.map((r) => <ReviewCard key={r.id} review={r} onToast={setToast} />)
         }
       </div>
+
+      <SimilarBooks isbn={isbn} />
     </div>
   );
 }

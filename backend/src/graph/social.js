@@ -43,11 +43,42 @@ async function getAllReviews() {
   return records.map(mapReview);
 }
 
-async function getAllUsers() {
-  const records = await read('MATCH (p:Person) RETURN p ORDER BY p.displayName ASC');
+async function getAllUsers({ q = '', limit = 20, offset = 0 } = {}) {
+  const whereClause = q
+    ? 'WHERE toLower(p.displayName) CONTAINS toLower($q) OR toLower(p.username) CONTAINS toLower($q)'
+    : '';
+  const records = await read(
+    `MATCH (p:Person)
+     ${whereClause}
+     RETURN p ORDER BY p.displayName ASC
+     SKIP toInteger($offset) LIMIT toInteger($limit)`,
+    { q, limit, offset }
+  );
   return records.map((r) => {
     const p = r.get('p').properties;
-    return { id: p.id, username: p.username, displayName: p.displayName, bio: p.bio, domain: p.domain, avatarUrl: p.avatarUrl };
+    return { id: p.id, username: p.username, displayName: p.displayName, bio: p.bio, avatarUrl: p.avatarUrl };
+  });
+}
+
+// Suggested people — order by follower count (desc), tie-break by displayName.
+// Only tiny sample (default 8) so the People page starts with a curated feel.
+async function getSuggestedUsers(limit = 8) {
+  const records = await read(
+    `MATCH (p:Person)
+     OPTIONAL MATCH (f:Person)-[:FOLLOWS]->(p)
+     WITH p, count(DISTINCT f) AS followers
+     RETURN p, followers ORDER BY followers DESC, p.displayName ASC
+     LIMIT toInteger($limit)`,
+    { limit }
+  );
+  return records.map((r) => {
+    const p = r.get('p').properties;
+    const f = r.get('followers');
+    return {
+      id: p.id, username: p.username, displayName: p.displayName,
+      bio: p.bio, avatarUrl: p.avatarUrl,
+      followerCount: f?.toNumber ? f.toNumber() : (f || 0),
+    };
   });
 }
 
@@ -164,7 +195,7 @@ function mapReview(r) {
 }
 
 module.exports = {
-  follow, unfollow, getTimeline, getAllReviews, getAllUsers,
+  follow, unfollow, getTimeline, getAllReviews, getAllUsers, getSuggestedUsers,
   getFollowers, getFollowing, recommendBooks, booksLikedByFollowed,
   getUserByUsername, updateUserProfile, updateUserAvatar,
   getUserReviews, getFollowCounts,

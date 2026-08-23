@@ -16,8 +16,8 @@ import os
 from fedbook_ml.ingest.base import ReceptionAggregate
 from fedbook_ml.ingest.bluesky import BlueskyCollector
 from fedbook_ml.ingest.mastodon import MastodonCollector
-from fedbook_ml.ingest.reddit import RedditCollector
 from fedbook_ml.ingest.youtube import YouTubeCollector
+# from fedbook_ml.ingest.reddit import RedditCollector  # removed 2026-08-16
 from fedbook_ml.neo4j_client import Neo4jClient
 from fedbook_ml.sentiment import SentimentScorer
 
@@ -25,8 +25,9 @@ log = logging.getLogger("fedbook_ml.ingest_daily")
 
 # Which env var must be set for each collector to be viable.
 # Bluesky and Mastodon can run unauthenticated so they have no strict gate.
+# Reddit removed 2026-08-16 — reddit.py stays on disk and can be re-added
+# to this map if the platform is ever reintroduced.
 _COLLECTOR_REQUIREMENTS = {
-    "reddit":   (RedditCollector,   "REDDIT_CLIENT_ID"),
     "youtube":  (YouTubeCollector,  "YOUTUBE_API_KEY"),
     "bluesky":  (BlueskyCollector,  None),
     "mastodon": (MastodonCollector, None),

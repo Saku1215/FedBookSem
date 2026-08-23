@@ -24,13 +24,14 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/feed" className="navbar-logo">
+      <Link to="/" className="navbar-logo">
         Fed<span style={{ color: 'var(--gold)' }}>Book</span>
       </Link>
       <div className="navbar-links">
-        <Link to="/feed">Feed</Link>
+        <Link to="/">Home</Link>
         <Link to="/books">Library</Link>
         <Link to="/people">People</Link>
+        {user && <Link to="/reading">Reading</Link>}
       </div>
       <div className="flex items-center gap-sm">
         {user ? (

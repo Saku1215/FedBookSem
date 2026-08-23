@@ -1,8 +1,13 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { read, write, getPrivateKey } = require('../graph/neo4j');
-const { deliverActivity } = require('../activitypub/delivery');
+const { read, write } = require('../graph/neo4j');
 const jwt = require('jsonwebtoken');
+
+// --- Scope pivot (2026-08-16) ------------------------------------------
+// Federation removed. Reviews are now local-only — the outbound Create
+// activity has been stripped. delivery.js and getPrivateKey are still on
+// disk if federation is reintroduced later.
+// ------------------------------------------------------------------------
 
 const router = express.Router();
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:3001';
@@ -28,8 +33,6 @@ router.post('/', auth, async (req, res) => {
   const activityId = `${base}/reviews/${id}`;
   const actorId = req.user.id;
 
-  const privateKey = await getPrivateKey(actorId);
-
   await write(
     `MATCH (p:Person {id: $actorId}), (b:Book {isbn: $isbn})
      CREATE (r:Review {
@@ -43,32 +46,6 @@ router.post('/', auth, async (req, res) => {
      CREATE (r)-[:REVIEWS]->(b)`,
     { actorId, isbn, id, content, rating: rating || 0, activityId }
   );
-
-  const activity = {
-    '@context': 'https://www.w3.org/ns/activitystreams',
-    id: activityId,
-    type: 'Create',
-    actor: actorId,
-    object: {
-      id: activityId,
-      type: 'Note',
-      content,
-      attributedTo: actorId,
-      published: new Date().toISOString(),
-    },
-  };
-
-  if (privateKey) {
-    const followers = await read(
-      `MATCH (f:Person)-[:FOLLOWS]->(:Person {id: $actorId})
-       WHERE f.domain <> $domain RETURN f.id AS id`,
-      { actorId, domain: process.env.DOMAIN }
-    );
-    const inboxUrls = followers.map((r) => `${r.get('id')}/inbox`);
-    if (inboxUrls.length) {
-      deliverActivity(activity, { id: actorId }, inboxUrls, privateKey);
-    }
-  }
 
   res.status(201).json({ id, activityId, content, rating });
 });

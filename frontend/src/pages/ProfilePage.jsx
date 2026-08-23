@@ -103,7 +103,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, marginBottom: 4 }}>{profile.displayName}</h1>
-                <div style={{ color: 'var(--text-muted)', marginBottom: 8 }}>@{profile.username} · {profile.domain}</div>
+                <div style={{ color: 'var(--text-muted)', marginBottom: 8 }}>@{profile.username}</div>
                 {profile.bio && <p style={{ marginBottom: 12, lineHeight: 1.6 }}>{profile.bio}</p>}
                 <div className="flex gap-sm flex-wrap" style={{ marginBottom: 12 }}>
                   <span><strong>{profile.followers}</strong> <span className="text-muted">followers</span></span>
@@ -115,7 +115,6 @@ export default function ProfilePage() {
                     ? <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Edit Profile</button>
                     : <FollowButton targetId={profile.id} targetUsername={profile.username} onToast={setToast} />
                   }
-                  <span className="badge badge-indigo">ActivityPub</span>
                 </div>
               </>
             )}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { createReview } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,7 +10,13 @@ export default function NewReviewForm({ isbn, onSubmitted }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="card" style={{ marginBottom: 16, padding: '12px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
+        <Link to="/login" style={{ color: 'var(--gold)' }}>Sign in</Link> to write a review.
+      </div>
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,7 +33,6 @@ export default function NewReviewForm({ isbn, onSubmitted }) {
     <div className="card" style={{ borderLeft: '3px solid var(--gold)', marginBottom: 24 }}>
       <div className="flex items-center gap-sm" style={{ marginBottom: 12 }}>
         <span style={{ fontWeight: 600 }}>Write a review</span>
-        <span className="badge badge-gold" style={{ marginLeft: 'auto' }}>Federated via ActivityPub</span>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="flex gap-sm" style={{ marginBottom: 10 }}>
