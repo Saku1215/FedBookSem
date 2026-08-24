@@ -24,6 +24,12 @@
 .PARAMETER AuthorEmail
     Override git author email (also used as committer).
 
+.PARAMETER DryRun
+    Print the plan (date, message, staged files) without writing any commit.
+
+.EXAMPLE
+    .\scripts\backdate-commits.ps1 -DryRun
+
 .EXAMPLE
     .\scripts\backdate-commits.ps1
 
@@ -34,7 +40,8 @@
 param(
     [string]$Manifest = (Join-Path $PSScriptRoot "backdate-commits.manifest.json"),
     [string]$AuthorName,
-    [string]$AuthorEmail
+    [string]$AuthorEmail,
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,6 +66,7 @@ if (-not $AuthorName -or -not $AuthorEmail) {
 Write-Host "[backdate] Identity : $AuthorName <$AuthorEmail>"
 Write-Host "[backdate] Manifest : $Manifest"
 Write-Host "[backdate] Entries  : $($entries.Count)"
+if ($DryRun) { Write-Host "[backdate] MODE     : DRY RUN (no commits will be made)" }
 Write-Host ""
 
 $i = 0
@@ -74,6 +82,13 @@ foreach ($e in $entries) {
     }
 
     Write-Host "[$i/$($entries.Count)] $($e.date)  $($e.message)"
+    if ($DryRun) {
+        Write-Host "         files: $($e.files -join ', ')"
+        if ($e.stageFrom) {
+            foreach ($sf in $e.stageFrom) { Write-Host "         stage: $($sf.src) -> $($sf.dst)" }
+        }
+        continue
+    }
 
     # Optional: replace a file with an intermediate version before staging
     if ($e.stageFrom) {
@@ -114,7 +129,11 @@ foreach ($e in $entries) {
 }
 
 Write-Host ""
-Write-Host "[backdate] Done. Review with:"
-Write-Host "    git log --date-order --format=`"%ai %an %s`" -$($entries.Count)"
-Write-Host "Then push:"
-Write-Host "    git push origin $(git -C $repoRoot branch --show-current)"
+if ($DryRun) {
+    Write-Host "[backdate] Dry run complete. Re-run without -DryRun to write commits."
+} else {
+    Write-Host "[backdate] Done. Review with:"
+    Write-Host "    git log --date-order --format=`"%ai %an %s`" -$($entries.Count)"
+    Write-Host "Then push:"
+    Write-Host "    git push origin $(git -C $repoRoot branch --show-current)"
+}
