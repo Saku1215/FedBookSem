@@ -1,0 +1,650 @@
+<mxfile host="app.diagrams.net" modified="2026-05-10T10:00:00.000Z" agent="Claude" version="21.0.0">
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 1: Authentication  (POST /api/auth/login)
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="auth" name="Auth — Login">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="POST /api/auth/login — Authentication Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- Client -->
+        <mxCell id="client" value="Client&#xa;{ username, password }" style="shape=mxgraph.flowchart.start_2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Validate input -->
+        <mxCell id="v1" value="Validate body&#xa;username &amp; password present?" style="rhombus;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="445" y="180" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e-v1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="client" target="v1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- 400 -->
+        <mxCell id="r400" value="400 Bad Request&#xa;'username and password required'" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="195" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-400" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="v1" target="r400"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Neo4j lookup -->
+        <mxCell id="neo1" value="Neo4j: MATCH (p:Person)&#xa;WHERE p.username = $username&#xa;RETURN p" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="455" y="300" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-neo1" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="v1" target="neo1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- 404 -->
+        <mxCell id="r404" value="404 Not Found&#xa;'User not found'" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="315" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-404" value="null" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="neo1" target="r404"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- bcrypt -->
+        <mxCell id="bcrypt" value="bcrypt.compare(&#xa;  password, p.passwordHash)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="455" y="410" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-bcrypt" value="found" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="neo1" target="bcrypt"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- 401 -->
+        <mxCell id="r401" value="401 Unauthorized&#xa;'Invalid credentials'" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="425" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-401" value="false" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="bcrypt" target="r401"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- JWT sign -->
+        <mxCell id="jwt" value="jwt.sign(&#xa;  { sub: username, domain },&#xa;  JWT_SECRET, { expiresIn: '7d' })" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="455" y="520" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-jwt" value="true" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="bcrypt" target="jwt"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- 200 -->
+        <mxCell id="r200" value="200 OK&#xa;{ token, actor: { username,&#xa;  displayName, domain, … } }" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="640" width="270" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-200" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="jwt" target="r200"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 2: ActivityPub Actors
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="actors" name="Actors — AP Actor Profiles">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="ActivityPub Actor Endpoints — /users/:username &amp; /books/:isbn" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="960" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- buildPersonActor() -->
+        <mxCell id="bpa-title" value="buildPersonActor(username)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bpa-neo" value="Neo4j: MATCH (p:Person {username})&#xa;Returns: username, displayName,&#xa;domain, publicKey, avatarUrl" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bpa-out" value="Returns JSON-LD Person actor:&#xa;@context, id, type:'Person',&#xa;inbox, outbox, followers,&#xa;following, publicKey, icon" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="190" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- buildBookActor() -->
+        <mxCell id="bba-title" value="buildBookActor(isbn)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bba-neo" value="Neo4j: MATCH (b:Book {isbn})&#xa;Returns: isbn, title, author,&#xa;year, coverUrl" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bba-out" value="Returns JSON-LD Group actor:&#xa;@context, id, type:'Group',&#xa;name, inbox, outbox,&#xa;followers, following" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="190" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Collection endpoints -->
+        <mxCell id="coll-title" value="Collection Endpoints" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="coll-list" value="GET /users/:u/followers&#xa;→ OrderedCollection of Person actors&#xa;&#xa;GET /users/:u/following&#xa;→ OrderedCollection of Person actors&#xa;&#xa;GET /users/:u/outbox&#xa;→ OrderedCollection of Create{Note}&#xa;   activities for user's reviews" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="280" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Entity access diagram -->
+        <mxCell id="ea-title" value="Entities Read / Written" style="text;html=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ea-person" value="Person" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="360" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ea-book" value="Book" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="360" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ea-read1" value="READ" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;" edge="1" parent="1" source="bpa-title" target="ea-person"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea-read2" value="READ" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;" edge="1" parent="1" source="bba-title" target="ea-book"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 3: WebFinger
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="webfinger" name="WebFinger Discovery">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="GET /.well-known/webfinger — Actor Discovery" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="req" value="Request&#xa;?resource=acct:alice@localhost:3001" style="shape=mxgraph.flowchart.start_2;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parse" value="Parse resource param&#xa;Split on '@' → [username, domain]" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="180" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="req" target="parse"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="v1" value="resource param present&#xa;and starts with 'acct:'?" style="rhombus;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="280" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="parse" target="v1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="r400" value="400 Bad Request&#xa;'resource param required'" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="295" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="No" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="v1" target="r400"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="neo1" value="Neo4j: MATCH (p:Person {username})&#xa;RETURN p.username, p.domain" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="400" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="v1" target="neo1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="r404" value="404 Not Found" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="415" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="null" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="neo1" target="r404"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="jrd" value="Build JRD response:&#xa;{ subject: 'acct:user@domain',&#xa;  links: [{&#xa;    rel: 'self',&#xa;    type: 'application/activity+json',&#xa;    href: BASE_URL/users/username&#xa;  }]&#xa;}" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="510" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="found" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="neo1" target="jrd"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="r200" value="200 OK — Content-Type: application/jrd+json" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="680" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="jrd" target="r200"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 4: Inbox
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="inbox" name="Inbox — Shared AP Inbox">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="POST /inbox — ActivityPub Shared Inbox Handler" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="req" value="Incoming Activity (JSON-LD)&#xa;{ @context, type, actor, object, … }" style="shape=mxgraph.flowchart.start_2;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="switch" value="Switch on activity.type" style="rhombus;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="180" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="req" target="switch"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Follow branch -->
+        <mxCell id="follow-box" value="Follow&#xa;────────────────&#xa;Neo4j: MERGE (follower)-[:FOLLOWS]→(target)&#xa;Reply with Accept{Follow} activity&#xa;Deliver Accept via delivery.js" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-follow" value="Follow" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="switch" target="follow-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Undo branch -->
+        <mxCell id="undo-box" value="Undo{Follow}&#xa;────────────────&#xa;Neo4j: MATCH (a)-[r:FOLLOWS]→(b)&#xa;DELETE r" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="360" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-undo" value="Undo" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="switch" target="undo-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Like branch -->
+        <mxCell id="like-box" value="Like&#xa;────────────────&#xa;Neo4j: MATCH (r:Review {apId})&#xa;SET r.likeCount += 1&#xa;MERGE (actor)-[:LIKES]→(r)" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="600" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-like" value="Like" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="switch" target="like-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Announce branch -->
+        <mxCell id="ann-box" value="Announce&#xa;────────────────&#xa;Neo4j: MERGE (actor)-[:BOOSTED]→(r)&#xa;WHERE r.apId = object" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="840" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ann" value="Announce" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="switch" target="ann-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Create branch -->
+        <mxCell id="create-box" value="Create{Note}&#xa;────────────────&#xa;Neo4j: CREATE (r:Review {…})&#xa;MERGE (author)-[:AUTHORED]→(r)&#xa;MERGE (r)-[:REVIEWS]→(book)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="300" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e-create" value="Create" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="switch" target="create-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- 202 -->
+        <mxCell id="r202" value="202 Accepted (all branches)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="460" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-f1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="follow-box" target="r202"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-f2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="undo-box" target="r202"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-f3" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="like-box" target="r202"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-f4" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="ann-box" target="r202"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-f5" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="create-box" target="r202"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 5: ActivityPub Delivery
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="delivery" name="Delivery — HTTP Signatures">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="delivery.js — Signed ActivityPub Dispatch" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="call" value="deliverActivity(activity, targetInbox, senderUsername)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="400" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="neo1" value="Neo4j: MATCH (p:Person {senderUsername})&#xa;RETURN p.privateKey" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="170" width="320" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="call" target="neo1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="headers" value="Build HTTP headers:&#xa;• Date: RFC 1123 timestamp&#xa;• Host: target hostname&#xa;• Digest: SHA-256 of body (base64)&#xa;• Content-Type: application/activity+json" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="265" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="neo1" target="headers"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="sig" value="Build signing string:&#xa;'(request-target): post /inbox\nhost: …\ndate: …\ndigest: …'&#xa;&#xa;node-forge: RSA-SHA256 sign&#xa;Base64-encode signature&#xa;&#xa;Signature header:&#xa;keyId=…,algorithm=rsa-sha256,&#xa;headers=…,signature=…" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="415" width="320" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="headers" target="sig"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="post" value="axios.post(targetInbox, activity, {&#xa;  headers, timeout: 5000&#xa;})" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="610" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="sig" target="post"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="ok" value="Success (2xx)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="710" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="err" value="Error logged (non-fatal)&#xa;server does not crash" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="710" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="success" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="post" target="ok"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="error" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="post" target="err"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 6: Reviews
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="reviews" name="Reviews — CRUD + Federation">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Reviews Route — /api/reviews" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- POST /reviews -->
+        <mxCell id="post-title" value="POST /api/reviews (auth required)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="post-body" value="1. Validate isbn, content, rating (1-5)&#xa;2. Neo4j: CREATE (r:Review {id,content,rating,apId})&#xa;3. MERGE (user)-[:AUTHORED]→(r)&#xa;4. MERGE (r)-[:REVIEWS]→(book)&#xa;5. Build Create{Note} AP activity&#xa;6. deliverActivity() to all book followers&#xa;7. Return 201 { review }" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="280" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- GET /reviews -->
+        <mxCell id="get-title" value="GET /api/reviews?isbn=…" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="get-body" value="Neo4j: MATCH (r)-[:REVIEWS]→(b {isbn})&#xa;OPTIONAL MATCH (a)-[:AUTHORED]→(r)&#xa;RETURN r.*, a.username, a.displayName&#xa;ORDER BY r.createdAt DESC" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="120" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- DELETE /reviews/:id -->
+        <mxCell id="del-title" value="DELETE /api/reviews/:id (auth)" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="del-body" value="1. Verify JWT — must be review author&#xa;2. Neo4j: MATCH (r:Review {id}) DELETE r&#xa;3. Also DELETE [:AUTHORED], [:REVIEWS] edges&#xa;4. Return 204 No Content" style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="680" y="120" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- POST /reviews/:id/like -->
+        <mxCell id="like-title" value="POST /api/reviews/:id/like (auth)" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="like-body" value="Neo4j: MATCH (r:Review {id})&#xa;SET r.likeCount = r.likeCount + 1&#xa;MERGE (user)-[:LIKES]→(r)&#xa;Build Like activity → deliverActivity()&#xa;to review author's inbox" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- POST /reviews/:id/announce -->
+        <mxCell id="ann-title" value="POST /api/reviews/:id/announce (auth)" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ann-body" value="Neo4j: MERGE (user)-[:BOOSTED]→(r)&#xa;Build Announce activity&#xa;deliverActivity() to user's followers" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- POST /reviews/:id/reply -->
+        <mxCell id="rep-title" value="POST /api/reviews/:id/reply (auth)" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rep-body" value="Neo4j: CREATE (reply:Reply {id,content})&#xa;MERGE (user)-[:AUTHORED]→(reply)&#xa;MERGE (reply)-[:REPLY_TO]→(review)&#xa;Build Create{Note} with inReplyTo AP field&#xa;deliverActivity() to original author" style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="700" y="360" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Node legend -->
+        <mxCell id="leg" value="Nodes touched: Person (READ), Book (READ), Review (READ/WRITE), Reply (WRITE)&#xa;Edges: AUTHORED (WRITE), REVIEWS (WRITE), LIKES (WRITE), BOOSTED (WRITE), REPLY_TO (WRITE)" style="text;html=1;strokeColor=#666;fillColor=#f5f5f5;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="520" width="820" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 7: Annotations
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="annotations" name="Annotations — W3C Web Annotation">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Annotations Route — /api/annotations (W3C Web Annotation)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="960" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- POST /annotations -->
+        <mxCell id="post-title" value="POST /api/annotations (auth)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="post-body" value="Request body (W3C format):&#xa;{ bodyValue, motivation,&#xa;  target: { isbn, selector: [&#xa;    { type: TextQuoteSelector,&#xa;      exact, prefix, suffix },&#xa;    { type: TextPositionSelector,&#xa;      start, end }&#xa;  ]} }&#xa;&#xa;Neo4j: CREATE (a:Annotation {id,&#xa;  bodyValue, motivation, quoteExact,&#xa;  quotePrefix, quoteSuffix,&#xa;  positionStart, positionEnd, apId})&#xa;&#xa;MERGE (user)-[:ANNOTATED]→(a)&#xa;MERGE (a)-[:ON_SOURCE]→(book)&#xa;&#xa;Return 201 with W3C JSON-LD" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="300" height="300" as="geometry" />
+        </mxCell>
+
+        <!-- GET /annotations -->
+        <mxCell id="get-title" value="GET /api/annotations?isbn=…" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="get-body" value="Neo4j:&#xa;MATCH (a:Annotation)-[:ON_SOURCE]→(b {isbn})&#xa;OPTIONAL MATCH (p)-[:ANNOTATED]→(a)&#xa;RETURN a.*, p.username&#xa;ORDER BY a.createdAt DESC&#xa;&#xa;Each result reconstructed as W3C&#xa;Annotation JSON-LD with selectors" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="300" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- GET /annotations/:id/thread -->
+        <mxCell id="thread-title" value="GET /api/annotations/:id/thread" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="thread-body" value="Neo4j:&#xa;MATCH (a:Annotation {id})&#xa;OPTIONAL MATCH (a)-[:REPLY_TO*]→(parent)&#xa;OPTIONAL MATCH (child)-[:REPLY_TO]→(a)&#xa;RETURN a, parent, [child]&#xa;&#xa;Returns threaded annotation tree" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="740" y="120" width="280" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- DELETE /annotations/:id -->
+        <mxCell id="del-title" value="DELETE /api/annotations/:id (auth)" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="320" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="del-body" value="Verify JWT — must be annotation author&#xa;Neo4j: MATCH (a:Annotation {id})&#xa;DETACH DELETE a&#xa;Return 204" style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- W3C format box -->
+        <mxCell id="w3c" value="W3C JSON-LD Response Shape:&#xa;{&#xa;  '@context': 'http://www.w3.org/ns/anno.jsonld',&#xa;  type: 'Annotation',&#xa;  id: BASE_URL/annotations/uuid,&#xa;  motivation: 'commenting',&#xa;  body: { type: 'TextualBody', value: '…' },&#xa;  target: {&#xa;    source: BASE_URL/books/isbn,&#xa;    selector: [ TextQuoteSelector, TextPositionSelector ]&#xa;  },&#xa;  creator: BASE_URL/users/username&#xa;}" style="rounded=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="500" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg" value="Nodes: Person (READ), Book (READ), Annotation (READ/WRITE)&#xa;Edges: ANNOTATED (WRITE), ON_SOURCE (WRITE)" style="text;html=1;strokeColor=#666;fillColor=#f5f5f5;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="700" width="700" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 8: Books
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="books" name="Books — Catalogue API">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Books Route — /api/books" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- GET /books -->
+        <mxCell id="all-title" value="GET /api/books" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="all-body" value="Neo4j:&#xa;MATCH (b:Book)&#xa;RETURN b.isbn, b.title, b.author,&#xa;  b.year, b.coverUrl&#xa;ORDER BY b.title ASC&#xa;&#xa;Returns array of all books" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- GET /books/:isbn -->
+        <mxCell id="one-title" value="GET /api/books/:isbn" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="one-body" value="Neo4j:&#xa;MATCH (b:Book {isbn})&#xa;RETURN b.*&#xa;&#xa;If not found → 404&#xa;Returns single book object" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- GET /books/:isbn/reviews -->
+        <mxCell id="rev-title" value="GET /api/books/:isbn/reviews" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rev-body" value="Neo4j:&#xa;MATCH (r:Review)-[:REVIEWS]→(b {isbn})&#xa;OPTIONAL MATCH (a:Person)-[:AUTHORED]→(r)&#xa;OPTIONAL MATCH ()-[l:LIKES]→(r)&#xa;RETURN r.id, r.content, r.rating,&#xa;  a.username, a.displayName,&#xa;  COUNT(l) AS likeCount&#xa;ORDER BY r.createdAt DESC&#xa;&#xa;Returns reviews with author info" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- covers route link -->
+        <mxCell id="cover-note" value="GET /api/covers/:isbn — SVG Cover Generator" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cover-body" value="Neo4j: MATCH (b:Book {isbn}) RETURN b.title, b.author&#xa;&#xa;Generates SVG:&#xa;• Palette selected by isbn hash (5 colour themes)&#xa;• Renders title, author, decorative lines&#xa;• Content-Type: image/svg+xml&#xa;• Cache-Control: public, max-age=86400&#xa;&#xa;Used as fallback when coverUrl is null" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="400" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg" value="Nodes: Book (READ), Review (READ), Person (READ)&#xa;Edges: REVIEWS (READ), AUTHORED (READ), LIKES (COUNT)" style="text;html=1;strokeColor=#666;fillColor=#f5f5f5;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="580" width="600" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 9: Social Graph
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="social" name="Social — Follow Graph">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Social Routes + social.js Graph Helpers — /api/social" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="960" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- follow() -->
+        <mxCell id="f-title" value="POST /api/social/follow (auth)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f-body" value="social.follow(follower, target)&#xa;────────────────────&#xa;Neo4j:&#xa;MATCH (a:Person {username: follower})&#xa;MATCH (b:Person {username: target})&#xa;MERGE (a)-[:FOLLOWS]→(b)&#xa;&#xa;If target is remote (different domain):&#xa;Build Follow activity&#xa;deliverActivity() to target inbox" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="260" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- unfollow() -->
+        <mxCell id="uf-title" value="POST /api/social/unfollow (auth)" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-body" value="social.unfollow(follower, target)&#xa;────────────────────&#xa;Neo4j:&#xa;MATCH (a)-[r:FOLLOWS]→(b)&#xa;WHERE a.username=$follower&#xa;  AND b.username=$target&#xa;DELETE r&#xa;&#xa;If remote: Build Undo{Follow}&#xa;deliverActivity()" style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="360" y="120" width="260" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- GET users -->
+        <mxCell id="u-title" value="GET /api/social/users" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="u-body" value="social.getAllUsers()&#xa;────────────────────&#xa;Neo4j:&#xa;MATCH (p:Person)&#xa;WHERE p.domain = $localDomain&#xa;RETURN p.username, p.displayName,&#xa;  p.bio, p.avatarUrl" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="660" y="120" width="260" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- GET followers/following -->
+        <mxCell id="ff-title" value="GET /api/social/:u/followers|following" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="80" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ff-body" value="getFollowers(u) / getFollowing(u)&#xa;────────────────────&#xa;Neo4j: MATCH (p)-[:FOLLOWS]→(u)&#xa;RETURN p.* (followers)&#xa;&#xa;Neo4j: MATCH (u)-[:FOLLOWS]→(p)&#xa;RETURN p.* (following)" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- recommend -->
+        <mxCell id="rec-title" value="recommendBooks(username)" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rec-body" value="Friend-of-friend Cypher traversal:&#xa;MATCH (me)-[:FOLLOWS]→(friend)&#xa;  -[:FOLLOWS]→(fof)&#xa;MATCH (fof)-[:AUTHORED]→(r)&#xa;  -[:REVIEWS]→(b)&#xa;WHERE NOT (me)-[:AUTHORED]→(:Review)&#xa;  -[:REVIEWS]→(b)&#xa;RETURN DISTINCT b.*, score&#xa;ORDER BY score DESC LIMIT 10" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="320" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- booksLikedByFollowed -->
+        <mxCell id="bl-title" value="booksLikedByFollowed(username)" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-body" value="MATCH (me)-[:FOLLOWS]→(friend)&#xa;MATCH (friend)-[:LIKES]→(r)&#xa;  -[:REVIEWS]→(b)&#xa;RETURN DISTINCT b.*,&#xa;  COLLECT(friend.username) AS likedBy&#xa;ORDER BY likedBy DESC LIMIT 10" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="400" width="280" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 10: Feed
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="feed" name="Feed — Personalised Timeline">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Feed Route — /api/feed" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="760" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- GET /feed (personalised) -->
+        <mxCell id="f1-title" value="GET /api/feed (auth required)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f1-body" value="social.getTimeline(username)&#xa;────────────────────&#xa;Neo4j:&#xa;MATCH (me)-[:FOLLOWS]→(friend)&#xa;MATCH (friend)-[:AUTHORED]→(r:Review)&#xa;MATCH (r)-[:REVIEWS]→(b:Book)&#xa;RETURN DISTINCT r.*, friend.*,&#xa;  b.isbn, b.title, b.coverUrl&#xa;ORDER BY r.createdAt DESC&#xa;LIMIT 50&#xa;&#xa;Returns personalised timeline" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="300" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- GET /feed/all (discover) -->
+        <mxCell id="f2-title" value="GET /api/feed/all (public)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f2-body" value="social.getAllReviews()&#xa;────────────────────&#xa;Neo4j:&#xa;MATCH (r:Review)&#xa;MATCH (r)-[:REVIEWS]→(b)&#xa;OPTIONAL MATCH (a)-[:AUTHORED]→(r)&#xa;RETURN DISTINCT r.*, a.*, b.*&#xa;ORDER BY r.createdAt DESC" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- GET /feed/recommendations -->
+        <mxCell id="f3-title" value="GET /api/feed/recommendations (auth)" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f3-body" value="Calls social.recommendBooks(username)&#xa;and social.booksLikedByFollowed(username)&#xa;────────────────────&#xa;Merges and deduplicates results&#xa;Returns book list with scores" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="120" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- GET /feed/liked-by-followed -->
+        <mxCell id="f4-title" value="GET /api/feed/liked-by-followed (auth)" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f4-body" value="Calls social.booksLikedByFollowed(username)&#xa;Returns books liked by people you follow&#xa;with list of who liked each book" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="400" width="300" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE 11: Users / Profiles
+       ══════════════════════════════════════════════════════════ -->
+  <diagram id="users" name="Users — Profiles &amp; Avatars">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Users Route — /api/users (Profiles + Avatar Uploads)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="960" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- GET /users/:username -->
+        <mxCell id="g-title" value="GET /api/users/:username" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g-body" value="Neo4j: MATCH (p:Person {username})&#xa;RETURN p.*&#xa;&#xa;getFollowers(u) → follower count&#xa;getFollowing(u) → following count&#xa;getUserReviews(u) → recent reviews&#xa;&#xa;Returns full profile object:&#xa;{ username, displayName, bio,&#xa;  avatarUrl, followerCount,&#xa;  followingCount, reviews }" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="300" height="185" as="geometry" />
+        </mxCell>
+
+        <!-- PUT /users/:username -->
+        <mxCell id="p-title" value="PUT /api/users/:username (auth)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p-body" value="updateUserProfile(username, data)&#xa;────────────────────&#xa;Validates JWT owns username&#xa;&#xa;Neo4j:&#xa;MATCH (p:Person {username})&#xa;SET p.displayName = $displayName,&#xa;  p.bio = $bio&#xa;&#xa;Returns updated profile" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="280" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- POST /users/:username/avatar -->
+        <mxCell id="a-title" value="POST /api/users/:username/avatar (auth)" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a-body" value="Multer config:&#xa;• dest: backend/public/avatars/&#xa;• limits: 4 MB&#xa;• filter: image/* MIME only&#xa;&#xa;On upload success:&#xa;Neo4j: SET p.avatarUrl = $filename&#xa;&#xa;Static serving: /avatars/*&#xa;Helmet crossOriginResourcePolicy: cross-origin&#xa;&#xa;Returns { avatarUrl: '/avatars/filename.jpg' }" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="120" width="320" height="185" as="geometry" />
+        </mxCell>
+
+        <!-- multer diagram -->
+        <mxCell id="multer-flow" value="Multer Upload Pipeline" style="text;html=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="multipart/form-data request" style="rounded=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="Multer middleware&#xa;validates MIME + size" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="Saved to disk:&#xa;public/avatars/uuid.ext" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="530" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="Neo4j p.avatarUrl updated" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-m1" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="m1" target="m2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-m2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="m2" target="m3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-m3" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="m3" target="m4"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

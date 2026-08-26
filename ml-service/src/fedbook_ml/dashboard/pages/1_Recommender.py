@@ -1,0 +1,251 @@
+"""Recommender demo page: choose a book, view similar recommendations under
+several re-ranking strategies, inspect per-candidate reception badges and
+optional live enrichment from Open Library and Hardcover.
+"""
+
+import os
+
+import httpx
+import streamlit as st
+
+ML_API = os.environ.get("ML_API_URL", "http://ml-service:8000")
+
+PLATFORM_COLOURS = {
+    "reddit": "#ff4500",
+    "youtube": "#ff0000",
+    "bluesky": "#0085ff",
+    "mastodon": "#6364ff",
+}
+PLATFORM_LABELS = {
+    "reddit": "Reddit",
+    "youtube": "YouTube",
+    "bluesky": "Bluesky",
+    "mastodon": "Mastodon",
+}
+
+
+def _reception_badges(item: dict) -> None:
+    """Render per-platform breakdown as a compact colored list + Hardcover
+    star chip + subject tags. Replaces the earlier dots-only layout so each
+    card shows the actual per-platform sentiment inline without needing a
+    hover or expander click."""
+    breakdown = item.get("platform_breakdown") or {}
+    mentions = item.get("mentions_by_platform") or {}
+    score = item.get("reception_score")
+    hc_rating = item.get("hardcover_rating")
+    hc_count = item.get("hardcover_ratings_count")
+    subjects = item.get("subjects") or []
+
+    # Header line: overall reception % + Hardcover star chip
+    header_parts = []
+    if score is not None and any(mentions.values()):
+        header_parts.append(
+            f'<span style="font-size:11px;color:#555;">Reception <b>{int(score*100)}%</b></span>'
+        )
+    if hc_rating is not None:
+        count_txt = f" ({hc_count:,})" if hc_count else ""
+        header_parts.append(
+            f'<span style="font-size:11px;color:#555;margin-left:12px;">'
+            f'<span style="color:#f5a623;">★</span> {hc_rating:.1f}/5{count_txt}</span>'
+        )
+    if header_parts:
+        st.markdown(
+            '<div style="margin-top:6px;">' + " ".join(header_parts) + "</div>",
+            unsafe_allow_html=True,
+        )
+
+    # Per-platform breakdown: one small row per platform, colour-coded.
+    # Always shows all 4 platforms so cards keep a consistent height; grey
+    # them out with reduced opacity when there is no data for that platform.
+    rows = []
+    for p, colour in PLATFORM_COLOURS.items():
+        data = breakdown.get(p) or {}
+        n = int(data.get("mentions") or 0)
+        pct = int((data.get("positive_pct") or 0) * 100)
+        pos = int(data.get("positive") or 0)
+        neu = int(data.get("neutral") or 0)
+        neg = int(data.get("negative") or 0)
+        label = PLATFORM_LABELS[p]
+        if n > 0:
+            rows.append(
+                f'<div style="font-size:11px;color:#333;line-height:1.4;">'
+                f'<span style="display:inline-block;width:8px;height:8px;'
+                f'border-radius:50%;background:{colour};margin-right:6px;'
+                f'vertical-align:middle;"></span>'
+                f'<b>{label}</b> — {pct}% pos · {n} mentions '
+                f'<span style="color:#888;">(+{pos}/{neu}/-{neg})</span>'
+                f'</div>'
+            )
+        else:
+            rows.append(
+                f'<div style="font-size:11px;color:#aaa;line-height:1.4;">'
+                f'<span style="display:inline-block;width:8px;height:8px;'
+                f'border-radius:50%;background:{colour};opacity:0.25;'
+                f'margin-right:6px;vertical-align:middle;"></span>'
+                f'<b>{label}</b> — no data'
+                f'</div>'
+            )
+    st.markdown(
+        '<div style="margin-top:6px;">' + "".join(rows) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if subjects:
+        st.caption("Subjects (Open Library): " + ", ".join(subjects[:5]))
+
+
+st.title("Recommender demo")
+
+col_query, col_strategy = st.columns([2, 1])
+
+with col_query:
+    mode = st.radio(
+        "Query type",
+        ["Book title", "ISBN seed", "Free-text seed"],
+        horizontal=True,
+    )
+
+    seed_isbn = None
+    seed_text = None
+    matched_book: dict | None = None
+
+    if mode == "ISBN seed":
+        seed_isbn = st.text_input(
+            "Seed book ISBN",
+            value="9780006480099",
+            help="Try 9780006480099 (Assassin's Apprentice - has real reception data)",
+        )
+    elif mode == "Free-text seed":
+        seed_text = st.text_area(
+            "Seed text",
+            value="an epic fantasy adventure with wizards and dragons",
+            height=80,
+        )
+    else:  # Book title
+        title_q = st.text_input(
+            "Book title (or author)",
+            value="Assassin's Apprentice",
+            help="Substring search - 'Gilead', 'Huxley', 'assassin' etc.",
+        )
+        if title_q and len(title_q) >= 2:
+            try:
+                sr = httpx.get(
+                    f"{ML_API}/books/search",
+                    params={"q": title_q, "k": 6},
+                    timeout=10.0,
+                ).json()
+                matches = sr.get("matches", [])
+            except Exception as exc:
+                st.error(f"Search failed: {exc}")
+                matches = []
+            if not matches:
+                st.info(f"No books match '{title_q}'.")
+            else:
+                labels = [
+                    f"{m['title']} - {m['author'][:40] or 'unknown'}   [{m['isbn']}]"
+                    for m in matches
+                ]
+                picked_label = st.radio(
+                    f"Matches for '{title_q}':",
+                    labels,
+                    index=0,
+                )
+                matched_book = matches[labels.index(picked_label)]
+                seed_isbn = matched_book["isbn"]
+
+with col_strategy:
+    strategy = st.selectbox(
+        "Re-rank strategy",
+        options=["semantic", "cross-encoder", "linear", "learned"],
+        index=0,
+    )
+    k = st.slider("Top-k", 3, 30, 12)
+    enrich = st.checkbox(
+        "Enrich live (Open Library + Hardcover)",
+        value=True,
+        help="Fetch subjects, work_id, and ★ ratings on demand. Adds ~1-3 s.",
+    )
+
+if strategy == "linear":
+    st.markdown("**Linear blend weights**")
+    a = st.slider("alpha (semantic)", 0.0, 1.0, 0.4, 0.05)
+    b = st.slider("beta (reception)", 0.0, 1.0, 0.5, 0.05)
+    g = st.slider("gamma (diversity)", 0.0, 1.0, 0.1, 0.05)
+else:
+    a, b, g = 0.7, 0.25, 0.05
+
+if matched_book and mode == "Book title":
+    # Show a full details block for the matched book itself so the user
+    # sees reception + Hardcover for the exact title they searched.
+    with st.spinner(f"Loading details for {matched_book['title']}..."):
+        try:
+            details_r = httpx.get(
+                f"{ML_API}/books/details",
+                params={"isbn": matched_book["isbn"], "enrichLive": "true"},
+                timeout=30.0,
+            )
+            details_r.raise_for_status()
+            details = details_r.json()
+        except Exception as exc:
+            st.error(f"Details fetch failed: {exc}")
+            details = None
+
+    if details:
+        st.markdown("---")
+        st.subheader(f":book: {details['title']}")
+        col_img, col_meta = st.columns([1, 3])
+        with col_img:
+            if details.get("thumbnail"):
+                st.image(details["thumbnail"], width=140)
+        with col_meta:
+            st.caption(details.get("author", ""))
+            desc = details.get("description") or ""
+            if desc:
+                st.write(desc[:400] + ("..." if len(desc) > 400 else ""))
+            _reception_badges(details)
+        st.markdown("---")
+
+if st.button("Recommend", type="primary"):
+    params = {"k": k}
+    if seed_isbn:
+        params["isbn"] = seed_isbn
+    if seed_text:
+        params["text"] = seed_text
+    if strategy != "semantic":
+        params["reRank"] = strategy
+    if strategy == "linear":
+        params.update({"alpha": a, "beta": b, "gamma": g})
+    if enrich:
+        params["enrichLive"] = "true"
+
+    try:
+        r = httpx.get(f"{ML_API}/recommend/similar", params=params, timeout=60.0)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as exc:
+        st.error(f"Request failed: {exc}")
+        st.stop()
+
+    st.subheader(f"Strategy: {data.get('strategy')}   -   {len(data['results'])} results")
+
+    cols = st.columns(4)
+    for i, item in enumerate(data["results"]):
+        with cols[i % 4]:
+            if item.get("thumbnail"):
+                st.image(item["thumbnail"], use_container_width=True)
+            st.markdown(f"**{item['title']}**")
+            st.caption(item.get("author", ""))
+
+            final = item.get("final_score") or item.get("score") or 0.0
+            st.metric("score", f"{final:.3f}")
+
+            _reception_badges(item)
+
+            with st.expander("features"):
+                for key in ("sim_score", "reception_score", "diversity_score",
+                            "ce_score", "final_score"):
+                    v = item.get(key)
+                    if v is not None:
+                        st.write(f"- **{key}**: {v:.3f}")
+                if item.get("openlibrary_work_id"):
+                    st.write(f"- **openlibrary_work_id**: {item['openlibrary_work_id']}")

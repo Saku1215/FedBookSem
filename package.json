@@ -1,0 +1,13 @@
+{
+  "name": "fedbooksem",
+  "version": "1.0.0",
+  "description": "Federated Social Graph for Intelligent Online Bookstore",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "seed": "cd backend && npm run seed"
+  }
+}

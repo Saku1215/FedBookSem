@@ -1,20 +1,18 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 
-const forge = require('node-forge');
+// --- Scope pivot (2026-08-16) ------------------------------------------
+// Federation removed — no RSA keypairs are generated for :Person any more.
+// node-forge remains in package.json in case federation is reintroduced,
+// but this seed no longer imports it. Annotations seeding was also dropped.
+// New: reading-status (:Person)-[:READING {status}]->(:Book) seeds.
+// ------------------------------------------------------------------------
+
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { write } = require('../src/graph/neo4j');
 
 const DOMAIN = process.env.DOMAIN || 'localhost:3001';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
-
-function generateKeyPair() {
-  const keypair = forge.pki.rsa.generateKeyPair({ bits: 2048, e: 0x10001 });
-  return {
-    publicKey: forge.pki.publicKeyToPem(keypair.publicKey),
-    privateKey: forge.pki.privateKeyToPem(keypair.privateKey),
-  };
-}
 
 const users = [
   { username: 'alice', displayName: 'Alice Perera', bio: 'Lover of Sinhala fiction and poetry.', password: 'alice123' },
@@ -41,55 +39,54 @@ const passages = {
 };
 
 async function seed() {
-  console.log('Seeding Neo4j...');
+  console.log('Seeding Neo4j (idempotent — will not wipe existing data)...');
 
-  // Clear existing data
-  await write('MATCH (n) DETACH DELETE n');
-  console.log('Cleared existing data.');
+  // Idempotent seeder. Uses MERGE + ON CREATE SET so re-running this script:
+  //   - never deletes existing nodes/relationships
+  //   - never overwrites data on nodes that already exist
+  //   - is safe to run alongside ML ingestion / Kaggle catalogue data
+  // Reviews and annotations get a stable `seedKey` so re-runs match the same
+  // node instead of creating duplicates. User-created reviews/annotations
+  // from the app never have `seedKey`, so they are never touched.
 
-  // Create users
+  // Create or preserve users
   const userRecords = [];
   for (const u of users) {
-    const { publicKey, privateKey } = generateKeyPair();
     const passwordHash = await bcrypt.hash(u.password, 12);
     const id = `${BASE_URL}/users/${u.username}`;
     await write(
-      `CREATE (p:Person {
-        id: $id,
-        username: $username,
-        displayName: $displayName,
-        bio: $bio,
-        domain: $domain,
-        publicKey: $publicKey,
-        privateKey: $privateKey,
-        passwordHash: $passwordHash,
-        avatarUrl: null,
-        createdAt: datetime()
-      })`,
-      { id, username: u.username, displayName: u.displayName, bio: u.bio, domain: DOMAIN, publicKey, privateKey, passwordHash }
+      `MERGE (p:Person {username: $username})
+       ON CREATE SET
+         p.id = $id,
+         p.displayName = $displayName,
+         p.bio = $bio,
+         p.domain = $domain,
+         p.passwordHash = $passwordHash,
+         p.avatarUrl = null,
+         p.createdAt = datetime()`,
+      { id, username: u.username, displayName: u.displayName, bio: u.bio, domain: DOMAIN, passwordHash }
     );
     userRecords.push({ ...u, id });
-    console.log(`Created user: ${u.username}`);
+    console.log(`Ensured user: ${u.username}`);
   }
 
-  // Create books
+  // Create or preserve books
   for (const b of books) {
     const id = `${BASE_URL}/books/${b.isbn}`;
     const passage = passages[b.isbn] || '';
     await write(
-      `CREATE (b:Book {
-        id: $id,
-        isbn: $isbn,
-        title: $title,
-        author: $author,
-        year: $year,
-        passage: $passage,
-        coverUrl: $coverUrl,
-        createdAt: datetime()
-      })`,
+      `MERGE (b:Book {isbn: $isbn})
+       ON CREATE SET
+         b.id = $id,
+         b.title = $title,
+         b.author = $author,
+         b.year = $year,
+         b.passage = $passage,
+         b.coverUrl = $coverUrl,
+         b.createdAt = datetime()`,
       { id, isbn: b.isbn, title: b.title, author: b.author, year: b.year, passage, coverUrl: b.coverUrl || null }
     );
-    console.log(`Created book: ${b.title}`);
+    console.log(`Ensured book: ${b.title}`);
   }
 
   // Create follow relationships
@@ -120,91 +117,52 @@ async function seed() {
 
   for (const r of reviews) {
     const id = uuidv4();
+    const seedKey = `seed:review:${r.author}:${r.isbn}`;
     await write(
       `MATCH (p:Person {username: $author}), (b:Book {isbn: $isbn})
-       CREATE (r:Review {
-         id: $id,
-         content: $content,
-         rating: $rating,
-         published: datetime(),
-         activityId: $activityId
-       })
-       CREATE (p)-[:AUTHORED]->(r)
-       CREATE (r)-[:REVIEWS]->(b)`,
+       MERGE (r:Review {seedKey: $seedKey})
+       ON CREATE SET
+         r.id = $id,
+         r.content = $content,
+         r.rating = $rating,
+         r.published = datetime(),
+         r.activityId = $activityId
+       MERGE (p)-[:AUTHORED]->(r)
+       MERGE (r)-[:REVIEWS]->(b)`,
       {
         author: r.author,
         isbn: r.isbn,
         id,
+        seedKey,
         content: r.content,
         rating: r.rating,
         activityId: `${BASE_URL}/reviews/${id}`,
       }
     );
   }
-  console.log('Created reviews.');
+  console.log('Ensured reviews.');
 
-  // Create sample annotations
-  const annotations = [
-    {
-      author: 'alice',
-      isbn: '9789556682045',
-      exact: 'coconut palms swaying in the monsoon wind',
-      motivation: 'commenting',
-      body: 'This image perfectly captures the rhythm of coastal life in the south.',
-    },
-    {
-      author: 'bob',
-      isbn: '9789556682052',
-      exact: 'some truths can only be found when the noise of the world fades away',
-      motivation: 'highlighting',
-      body: 'A central theme of the entire novel expressed in a single sentence.',
-    },
-    {
-      author: 'carol',
-      isbn: '9789555232310',
-      exact: 'every morning the birds came to the tall trees',
-      motivation: 'tagging',
-      body: 'Nature imagery as metaphor for childhood freedom.',
-    },
+  // Reading-status seeds (:Person)-[:READING {status, updatedAt}]->(:Book)
+  const readingStates = [
+    { username: 'alice', isbn: '9789556682045', status: 'finished' },
+    { username: 'alice', isbn: '9789555232310', status: 'reading' },
+    { username: 'alice', isbn: '9789553100012', status: 'want-to-read' },
+    { username: 'bob',   isbn: '9789556682052', status: 'finished' },
+    { username: 'bob',   isbn: '9789555360180', status: 'reading' },
+    { username: 'carol', isbn: '9789555232310', status: 'finished' },
+    { username: 'carol', isbn: '9789550019015', status: 'want-to-read' },
   ];
 
-  for (const a of annotations) {
-    const id = uuidv4();
-    const bookSource = `${BASE_URL}/books/${a.isbn}`;
-    const passage = passages[a.isbn] || '';
-    const idx = passage.indexOf(a.exact);
+  for (const r of readingStates) {
     await write(
-      `MATCH (p:Person {username: $author}), (b:Book {isbn: $isbn})
-       CREATE (an:Annotation {
-         id: $id,
-         motivation: $motivation,
-         bodyValue: $bodyValue,
-         exactText: $exact,
-         prefix: $prefix,
-         suffix: $suffix,
-         startOffset: $start,
-         endOffset: $end,
-         bookSource: $bookSource,
-         created: datetime()
-       })
-       CREATE (p)-[:ANNOTATED]->(an)
-       CREATE (an)-[:ON_SOURCE]->(b)`,
-      {
-        author: a.author,
-        isbn: a.isbn,
-        id,
-        motivation: a.motivation,
-        bodyValue: a.body,
-        exact: a.exact,
-        prefix: idx > 10 ? passage.slice(idx - 10, idx) : passage.slice(0, idx),
-        suffix: passage.slice(idx + a.exact.length, idx + a.exact.length + 10),
-        start: idx,
-        end: idx + a.exact.length,
-        bookSource,
-      }
+      `MATCH (p:Person {username: $username}), (b:Book {isbn: $isbn})
+       MERGE (p)-[rel:READING]->(b)
+       ON CREATE SET rel.status = $status, rel.updatedAt = datetime()
+       ON MATCH  SET rel.status = coalesce(rel.status, $status)`,
+      r
     );
   }
-  console.log('Created annotations.');
+  console.log('Ensured reading statuses.');
 
   console.log('Seed complete.');
   process.exit(0);
